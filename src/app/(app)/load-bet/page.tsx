@@ -2,25 +2,13 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
 import { QrCode, Info } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/client";
-import { useBetslip, type BetType, type BetslipSelection } from "@/lib/betslip-store";
-
-type RawSelection = {
-  fixture_id: string;
-  market_id: string;
-  outcome_id: string;
-  selection_name: string;
-  market_name: string;
-  fixture_label: string;
-  odds_price: number;
-};
+import { useLoadBookedBet } from "@/lib/use-load-booked-bet";
 
 export default function LoadBetPage() {
   return (
@@ -33,46 +21,17 @@ export default function LoadBetPage() {
 function LoadBetForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
-  const loadSelections = useBetslip((s) => s.loadSelections);
+  const { load, loading } = useLoadBookedBet();
   const [code, setCode] = useState(searchParams.get("code")?.toUpperCase() ?? "");
-  const [loading, setLoading] = useState(false);
 
   async function handleLoad(codeToLoad?: string) {
-    const target = (codeToLoad ?? code).trim();
-    if (!target) {
-      toast.error("Enter your bet code");
-      return;
-    }
-    setLoading(true);
-    const { data, error } = await supabase.rpc("fn_load_booked_bet", { p_bet_code: target });
-    setLoading(false);
-
-    if (error) {
-      toast.error("Could not load bet", { description: mapError(error.message) });
-      return;
-    }
-
-    const result = data as { bet_type: BetType; selections: RawSelection[] };
-    const mapped: BetslipSelection[] = result.selections.map((s) => ({
-      outcomeId: s.outcome_id,
-      marketId: s.market_id,
-      fixtureId: s.fixture_id,
-      selectionName: s.selection_name,
-      marketName: s.market_name,
-      fixtureLabel: s.fixture_label,
-      oddsPrice: s.odds_price,
-    }));
-
-    loadSelections(mapped, result.bet_type);
-    toast.success("Bet loaded into your betslip");
-    router.push("/");
+    const ok = await load(codeToLoad ?? code);
+    if (ok) router.push("/");
   }
 
   useEffect(() => {
     // One-time action on mount (RPC call), not a state mirror -- intentional.
     const fromQuery = searchParams.get("code");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (fromQuery) handleLoad(fromQuery.toUpperCase());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -116,11 +75,4 @@ function LoadBetForm() {
       </div>
     </div>
   );
-}
-
-function mapError(message: string) {
-  if (message.includes("CODE_NOT_FOUND")) return "That code doesn't exist.";
-  if (message.includes("CODE_EXPIRED")) return "This code has expired.";
-  if (message.includes("CODE_CANCELLED")) return "This code was cancelled.";
-  return "Something went wrong. Please try again.";
 }
