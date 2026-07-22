@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Ticket, TrendingUp, Banknote, Gift, BarChart3, UserPlus, Wallet, Trophy } from "lucide-react";
+import { Users, Ticket, TrendingUp, Banknote, Gift, Image as ImageIcon, BarChart3, UserPlus, Wallet, Trophy } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { formatMoney } from "@/lib/format";
@@ -71,6 +71,7 @@ export default async function AdminDashboardPage() {
     { href: "/admin/bets", label: "Bets", icon: Ticket },
     { href: "/admin/withdrawals", label: "Withdrawals", icon: Banknote },
     { href: "/admin/promotions", label: "Promotions", icon: Gift },
+    { href: "/admin/banners", label: "Banners", icon: ImageIcon },
   ];
 
   return (

@@ -84,18 +84,19 @@ function LoadBetForm() {
       <div className="flex flex-col gap-4 p-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="code">Bet Code / Voucher</Label>
-          <Input
-            id="code"
-            placeholder="Enter your bet code (e.g. EZY7A8X3M2)"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            className="font-mono tracking-wider"
-          />
+          <div className="flex gap-2">
+            <Input
+              id="code"
+              placeholder="Enter your bet code (e.g. EZY7A8X3M2)"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              className="font-mono tracking-wider"
+            />
+            <Button disabled={loading} onClick={() => handleLoad()} className="shrink-0">
+              {loading ? "Loading…" : "Load"}
+            </Button>
+          </div>
         </div>
-
-        <Button size="lg" disabled={loading} onClick={() => handleLoad()}>
-          {loading ? "Loading…" : "Load"}
-        </Button>
 
         <div className="flex items-center gap-3 py-1">
           <div className="h-px flex-1 bg-border" />

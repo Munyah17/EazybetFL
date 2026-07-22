@@ -3,9 +3,12 @@ import { SessionProvider } from "@/lib/auth/session-provider";
 import { SiteHeader } from "@/components/layout/site-header";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { DesktopSidebar } from "@/components/layout/desktop-sidebar";
+import { AnnouncementBar } from "@/components/layout/announcement-bar";
+import { Footer } from "@/components/layout/footer";
 import { BetslipSheet } from "@/components/betting/betslip-sheet";
 import { BetslipPanel } from "@/components/betting/betslip-panel";
-import { getActiveSportGroupsWithCounts } from "@/lib/data/sport-groups";
+import { getSidebarTree } from "@/lib/data/sidebar-tree";
+import { getActiveAnnouncement } from "@/lib/data/banners";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -16,8 +19,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let profile = null;
   let wallet = null;
 
-  const [sportGroups, sessionData] = await Promise.all([
-    getActiveSportGroupsWithCounts(),
+  const [sidebarTree, announcement, sessionData] = await Promise.all([
+    getSidebarTree(),
+    getActiveAnnouncement(),
     user
       ? Promise.all([
           supabase.from("profiles").select("*").eq("id", user.id).single(),
@@ -33,12 +37,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <SessionProvider initialProfile={profile} initialWallet={wallet}>
+      <AnnouncementBar announcement={announcement} />
       <SiteHeader />
       <div className="mx-auto flex w-full max-w-[1440px]">
-        <DesktopSidebar groups={sportGroups} />
+        <DesktopSidebar groups={sidebarTree} />
         <main className="min-w-0 flex-1 pb-20 lg:pb-6">{children}</main>
         <BetslipPanel />
       </div>
+      <Footer />
       <BottomNav />
       <BetslipSheet />
     </SessionProvider>

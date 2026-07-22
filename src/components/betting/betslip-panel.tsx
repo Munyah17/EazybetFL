@@ -12,7 +12,7 @@ export function BetslipPanel() {
   const selections = useBetslip((s) => s.selections);
 
   return (
-    <aside className="sticky top-[57px] hidden h-[calc(100svh-57px)] w-96 shrink-0 flex-col border-l border-border lg:flex">
+    <aside className="sticky top-[57px] hidden h-[calc(100svh-57px)] w-80 shrink-0 flex-col border-l border-border lg:flex">
       <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3.5">
         <h2 className="flex items-center gap-2 text-base font-semibold">
           Betslip

@@ -64,6 +64,71 @@ export type Database = {
           },
         ]
       }
+      banners: {
+        Row: {
+          accent: Database["public"]["Enums"]["banner_accent"]
+          active: boolean
+          created_at: string
+          created_by: string | null
+          cta_href: string | null
+          cta_label: string | null
+          description: string | null
+          display_order: number
+          ends_at: string | null
+          eyebrow: string | null
+          id: string
+          image_url: string | null
+          kind: Database["public"]["Enums"]["banner_kind"]
+          starts_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          accent?: Database["public"]["Enums"]["banner_accent"]
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          cta_href?: string | null
+          cta_label?: string | null
+          description?: string | null
+          display_order?: number
+          ends_at?: string | null
+          eyebrow?: string | null
+          id?: string
+          image_url?: string | null
+          kind: Database["public"]["Enums"]["banner_kind"]
+          starts_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          accent?: Database["public"]["Enums"]["banner_accent"]
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          cta_href?: string | null
+          cta_label?: string | null
+          description?: string | null
+          display_order?: number
+          ends_at?: string | null
+          eyebrow?: string | null
+          id?: string
+          image_url?: string | null
+          kind?: Database["public"]["Enums"]["banner_kind"]
+          starts_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banners_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bet_selections: {
         Row: {
           bet_id: string
@@ -1129,6 +1194,8 @@ export type Database = {
     }
     Enums: {
       account_status: "active" | "suspended" | "banned"
+      banner_accent: "primary" | "boost" | "info"
+      banner_kind: "hero_slide" | "announcement"
       bet_status:
         | "open"
         | "won"
@@ -1326,6 +1393,8 @@ export const Constants = {
   public: {
     Enums: {
       account_status: ["active", "suspended", "banned"],
+      banner_accent: ["primary", "boost", "info"],
+      banner_kind: ["hero_slide", "announcement"],
       bet_status: [
         "open",
         "won",

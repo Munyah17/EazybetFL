@@ -1,11 +1,12 @@
-import { Volleyball, CircleDot, Trophy, Gamepad2, Goal, type LucideIcon } from "lucide-react";
+import { Volleyball, CircleDot, Trophy, Gamepad2, type LucideIcon } from "lucide-react";
+import { SoccerBallIcon } from "@/components/betting/icons/soccer-ball-icon";
 
-const ICONS: Record<string, LucideIcon> = {
+const ICONS: Record<string, LucideIcon | typeof SoccerBallIcon> = {
   Volleyball,
   CircleDot,
   Trophy,
   Gamepad2,
-  Goal,
+  SoccerBall: SoccerBallIcon,
 };
 
 export function SportIcon({ name, className }: { name: string | null; className?: string }) {

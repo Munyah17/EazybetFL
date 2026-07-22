@@ -15,6 +15,7 @@ export type FixtureWithOdds = {
   competition: {
     id: string;
     title: string;
+    odds_api_key: string;
     sport_group: { id: string; key: string; name: string; icon: string } | null;
   } | null;
   markets: {

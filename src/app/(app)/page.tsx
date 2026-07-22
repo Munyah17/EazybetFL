@@ -1,30 +1,21 @@
 import Link from "next/link";
 import { getFixtures } from "@/lib/data/fixtures";
 import { getActiveSportGroups } from "@/lib/data/sport-groups";
+import { getActiveHeroSlides } from "@/lib/data/banners";
 import { SportsBar } from "@/components/betting/sports-bar";
 import { HeroCarousel } from "@/components/betting/hero-carousel";
 import { LeagueSections } from "@/components/betting/league-section";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { buildHeroSlides } from "@/lib/data/hero-slides";
-import { createClient } from "@/lib/supabase/server";
 
 export const revalidate = 30;
 
 export default async function HomePage() {
-  const supabase = await createClient();
-
-  const [groups, { data: promotions }, liveFixtures, upcomingFixtures] = await Promise.all([
+  const [groups, slides, liveFixtures, upcomingFixtures] = await Promise.all([
     getActiveSportGroups(),
-    supabase
-      .from("promotions")
-      .select("id, title, description, type")
-      .eq("active", true)
-      .order("created_at", { ascending: false }),
+    getActiveHeroSlides(),
     getFixtures({ status: ["live"], limit: 20 }),
     getFixtures({ status: ["upcoming"], limit: 30 }),
   ]);
-
-  const slides = buildHeroSlides(promotions ?? []);
 
   return (
     <div className="flex flex-col">

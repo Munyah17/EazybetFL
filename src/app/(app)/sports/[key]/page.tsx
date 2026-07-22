@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
-import { LeagueSections } from "@/components/betting/league-section";
+import { PaginatedLeagueSections } from "@/components/betting/paginated-league-sections";
 import { getFixtures } from "@/lib/data/fixtures";
 import { getActiveSportGroups } from "@/lib/data/sport-groups";
 import { displayGroupName } from "@/lib/sport-display";
@@ -19,7 +19,7 @@ export default async function SportGroupPage({ params }: { params: Promise<{ key
     <div className="flex flex-col">
       <PageHeader title={displayGroupName(group.name)} backHref="/sports" />
       <div className="px-3 pt-3 pb-3">
-        <LeagueSections fixtures={fixtures} />
+        <PaginatedLeagueSections fixtures={fixtures} />
       </div>
     </div>
   );

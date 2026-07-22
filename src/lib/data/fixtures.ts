@@ -9,7 +9,7 @@ type FixtureStatus = Database["public"]["Enums"]["fixture_status"];
 
 const FIXTURE_SELECT = `
   id, home_team, away_team, commence_time, status, home_score, away_score, minute,
-  competition:competitions ( id, title, sport_group:sport_groups ( id, key, name, icon ) ),
+  competition:competitions ( id, title, odds_api_key, sport_group:sport_groups ( id, key, name, icon ) ),
   markets ( id, market_key, market_name, status, odds_outcomes ( id, name, point, price, display_order ) )
 `;
 
@@ -23,6 +23,7 @@ export async function getFixtureById(id: string): Promise<FixtureWithOdds | null
 export async function getFixtures(opts: {
   status?: FixtureStatus[];
   sportGroupKey?: string;
+  competitionKey?: string;
   limit?: number;
   orderBy?: "commence_time";
 }): Promise<FixtureWithOdds[]> {
@@ -39,6 +40,9 @@ export async function getFixtures(opts: {
   let rows = (data ?? []) as unknown as FixtureWithOdds[];
   if (opts.sportGroupKey) {
     rows = rows.filter((f) => f.competition?.sport_group?.key === opts.sportGroupKey);
+  }
+  if (opts.competitionKey) {
+    rows = rows.filter((f) => f.competition?.odds_api_key === opts.competitionKey);
   }
   return rows;
 }

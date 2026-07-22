@@ -47,10 +47,13 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
   const boosted = betType === "multiple" && winboost && selections.length >= 3;
 
   // Multiple/System require 2+ legs (enforced by fn_place_bet too) -- with
-  // fewer than 2 selections there's only ever a single bet to place,
-  // regardless of which tab is active.
-  const effectiveBetType: BetType =
-    selections.length < 2 ? "single" : betType === "single" ? "multiple" : betType;
+  // fewer than 2 selections there's only ever a single bet to place. Once
+  // there are 2+, the user's explicit tab choice wins -- "Single" with
+  // multiple selections is a valid, real mode (N independent bets), not
+  // something to silently override. The one-time nudge from Single to
+  // Multiple on the 1->2 selection transition lives in the store's
+  // addSelection, not here.
+  const effectiveBetType: BetType = selections.length < 2 ? "single" : betType;
 
   const potentialWin =
     effectiveBetType === "single"
@@ -265,12 +268,16 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
       </div>
 
       {selections.length > 0 && (
-        <div className="flex shrink-0 gap-2 border-t border-border bg-background p-3">
-          <Button variant="outline" className="flex-1" disabled={booking} onClick={handleBookBet}>
-            {booking ? "Booking…" : "Book Bet"}
+        <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-background p-3">
+          <Button disabled={placing} onClick={handlePlaceBet}>
+            {placing
+              ? "Placing…"
+              : !profile
+                ? "Login to Bet"
+                : `Place Bet · ${formatMoney(totalStakeRequired)}`}
           </Button>
-          <Button className="flex-[2]" disabled={placing} onClick={handlePlaceBet}>
-            {placing ? "Placing…" : `Place Bet · ${formatMoney(totalStakeRequired)}`}
+          <Button variant="outline" disabled={booking} onClick={handleBookBet}>
+            {booking ? "Booking…" : "Book Bet"}
           </Button>
         </div>
       )}

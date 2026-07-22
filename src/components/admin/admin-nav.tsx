@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Ticket, Banknote, Gift, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, Banknote, Gift, Image as ImageIcon, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function AdminNav({ isSuperAdmin }: { isSuperAdmin: boolean }) {
@@ -14,6 +14,7 @@ export function AdminNav({ isSuperAdmin }: { isSuperAdmin: boolean }) {
     { href: "/admin/bets", label: "Bets", icon: Ticket },
     { href: "/admin/withdrawals", label: "Withdrawals", icon: Banknote },
     { href: "/admin/promotions", label: "Promotions", icon: Gift },
+    { href: "/admin/banners", label: "Banners", icon: ImageIcon },
     ...(isSuperAdmin ? [{ href: "/super-admin", label: "Super Admin", icon: ShieldCheck }] : []),
   ];
 

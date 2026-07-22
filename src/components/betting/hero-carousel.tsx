@@ -5,24 +5,15 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { Banner } from "@/lib/data/banners";
 
-export type HeroSlide = {
-  id: string;
-  eyebrow: string;
-  title: string;
-  description: string;
-  ctaLabel: string;
-  ctaHref: string;
-  accent: "primary" | "boost" | "info";
-};
-
-const ACCENT_CLASS: Record<HeroSlide["accent"], string> = {
+const ACCENT_CLASS: Record<Banner["accent"], string> = {
   primary: "from-primary/25 via-card to-card",
   boost: "from-boost/20 via-card to-card",
   info: "from-[#4ea8ff]/20 via-card to-card",
 };
 
-export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
+export function HeroCarousel({ slides }: { slides: Banner[] }) {
   const [index, setIndex] = useState(0);
 
   const next = useCallback(() => setIndex((i) => (i + 1) % slides.length), [slides.length]);
@@ -43,19 +34,34 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
         style={{ transform: `translateX(-${index * 100}%)` }}
       >
         {slides.map((slide) => (
-          <div key={slide.id} className="w-full shrink-0">
+          <div key={slide.id} className="relative w-full shrink-0">
+            {slide.image_url && (
+              // eslint-disable-next-line @next/next/no-img-element -- admin-supplied arbitrary URLs, no domain to allowlist
+              <img
+                src={slide.image_url}
+                alt=""
+                className="absolute inset-0 size-full object-cover"
+                aria-hidden
+              />
+            )}
             <div
               className={cn(
-                "flex min-h-36 flex-col justify-center gap-1 bg-gradient-to-br px-5 py-5 lg:min-h-44 lg:px-8",
-                ACCENT_CLASS[slide.accent]
+                "relative flex min-h-40 flex-col justify-center gap-1 px-5 py-5 lg:min-h-52 lg:px-8",
+                slide.image_url ? "bg-black/55" : cn("bg-gradient-to-br", ACCENT_CLASS[slide.accent])
               )}
             >
-              <p className="text-xs font-bold uppercase tracking-wide text-boost">{slide.eyebrow}</p>
+              {slide.eyebrow && (
+                <p className="text-xs font-bold uppercase tracking-wide text-boost">{slide.eyebrow}</p>
+              )}
               <h2 className="text-xl font-extrabold leading-tight lg:text-2xl">{slide.title}</h2>
-              <p className="max-w-md text-sm text-muted-foreground">{slide.description}</p>
-              <Button asChild size="sm" className="mt-2 w-fit">
-                <Link href={slide.ctaHref}>{slide.ctaLabel}</Link>
-              </Button>
+              {slide.description && (
+                <p className="max-w-md text-sm text-muted-foreground">{slide.description}</p>
+              )}
+              {slide.cta_label && slide.cta_href && (
+                <Button asChild size="sm" className="mt-2 w-fit">
+                  <Link href={slide.cta_href}>{slide.cta_label}</Link>
+                </Button>
+              )}
             </div>
           </div>
         ))}
