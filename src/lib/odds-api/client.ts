@@ -91,7 +91,7 @@ export const DEFAULT_SYNC_SPORT_KEYS = [
 ];
 
 const GROUP_ICON: Record<string, string> = {
-  Soccer: "Volleyball",
+  Soccer: "Goal",
   Basketball: "CircleDot",
   "American Football": "Trophy",
   Baseball: "CircleDot",

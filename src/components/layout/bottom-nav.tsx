@@ -19,7 +19,7 @@ export function BottomNav() {
   const setOpen = useBetslip((s) => s.setOpen);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur">
+    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur lg:hidden">
       <div className="mx-auto grid max-w-lg grid-cols-5 items-center">
         {items.slice(0, 2).map((item) => (
           <NavLink key={item.href} item={item} active={pathname === item.href} />

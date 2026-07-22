@@ -15,8 +15,10 @@ export default async function SportsPage() {
   return (
     <div className="flex flex-col">
       <PageHeader title="All Sports" backHref="/" />
-      <SportsBar groups={groups} />
-      <div className="px-3 pb-3">
+      <div className="lg:hidden">
+        <SportsBar groups={groups} />
+      </div>
+      <div className="px-3 pb-3 lg:px-5 lg:pt-3">
         <LeagueSections fixtures={fixtures} />
       </div>
     </div>
