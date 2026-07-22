@@ -1,5 +1,6 @@
 "use client";
 
+import { Ticket } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useBetslip } from "@/lib/betslip-store";
 import { useMediaQuery, DESKTOP_QUERY } from "@/lib/use-media-query";
@@ -21,15 +22,17 @@ export function BetslipSheet() {
         showCloseButton={false}
         className="flex max-h-[88vh] flex-col rounded-t-2xl border-border bg-background p-0"
       >
-        <SheetHeader className="flex-row items-center gap-2 border-b border-border px-4 py-3">
-          <SheetTitle className="flex shrink-0 items-center gap-1.5 text-base">
-            Betslip
+        <SheetHeader className="flex-row items-center gap-2 border-b border-border px-3 py-2.5">
+          {/* Visually hidden but keeps the sheet accessible to screen readers */}
+          <SheetTitle className="sr-only">Betslip</SheetTitle>
+          <span className="relative flex shrink-0 items-center justify-center">
+            <Ticket className="size-4.5 text-primary" />
             {selections.length > 0 && (
-              <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+              <span className="absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                 {selections.length}
               </span>
             )}
-          </SheetTitle>
+          </span>
           <LoadBetInline />
         </SheetHeader>
 

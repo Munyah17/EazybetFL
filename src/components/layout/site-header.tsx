@@ -9,12 +9,13 @@ import { NavSheet } from "@/components/layout/nav-sheet";
 import { useSession } from "@/lib/auth/session-provider";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { CASINO_URL } from "@/lib/constants";
 
 const DESKTOP_LINKS = [
   { href: "/", label: "Home" },
   { href: "/live", label: "Live" },
   { href: "/sports", label: "Sports" },
-  { href: "/casino", label: "Casino" },
+  { href: CASINO_URL, label: "Casino", external: true },
   { href: "/promotions", label: "Promotions" },
 ];
 
@@ -23,37 +24,37 @@ export function SiteHeader() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur lg:px-5">
-      <div className="flex items-center gap-2 lg:gap-8">
-        <div className="flex items-center gap-2">
-          <div className="lg:hidden">
-            <NavSheet />
-          </div>
-          <Link href="/" aria-label="EazyBet home">
-            <Logo />
-          </Link>
+    <header className="sticky top-0 z-30 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur lg:px-5">
+      <div className="flex items-center gap-2">
+        <div className="lg:hidden">
+          <NavSheet />
         </div>
-
-        <nav className="hidden items-center gap-1 lg:flex">
-          {DESKTOP_LINKS.map((link) => {
-            const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "px-3 py-2 text-sm font-semibold transition-colors",
-                  active ? "text-primary" : "text-foreground/80 hover:text-foreground"
-                )}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <Link href="/" aria-label="EazyBet home">
+          <Logo />
+        </Link>
       </div>
 
-      <div className="flex items-center gap-3">
+      <nav className="hidden items-center gap-1 lg:flex">
+        {DESKTOP_LINKS.map((link) => {
+          const active = !link.external && (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href));
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              target={link.external ? "_blank" : undefined}
+              rel={link.external ? "noopener noreferrer" : undefined}
+              className={cn(
+                "px-3 py-2 text-sm font-semibold transition-colors",
+                active ? "text-primary" : "text-foreground/80 hover:text-foreground"
+              )}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="flex items-center justify-end gap-3">
         {profile ? (
           <>
             <Link

@@ -1,5 +1,6 @@
 "use client";
 
+import { Ticket } from "lucide-react";
 import { useBetslip } from "@/lib/betslip-store";
 import { BetslipContent } from "@/components/betting/betslip-content";
 import { LoadBetInline } from "@/components/betting/load-bet-inline";
@@ -12,15 +13,15 @@ export function BetslipPanel() {
 
   return (
     <aside className="sticky top-[57px] hidden h-[calc(100svh-57px)] w-80 shrink-0 flex-col border-l border-border lg:flex">
-      <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-3">
-        <h2 className="flex shrink-0 items-center gap-1.5 text-base font-semibold">
-          Betslip
+      <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2.5">
+        <span className="relative flex shrink-0 items-center justify-center" aria-label="Betslip">
+          <Ticket className="size-4.5 text-primary" />
           {selections.length > 0 && (
-            <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+            <span className="absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
               {selections.length}
             </span>
           )}
-        </h2>
+        </span>
         <LoadBetInline />
       </div>
 

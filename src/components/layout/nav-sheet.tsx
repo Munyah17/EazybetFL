@@ -21,6 +21,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Separator } from "@/components/ui/separator";
 import { Logo } from "@/components/layout/logo";
 import { useSession } from "@/lib/auth/session-provider";
+import { CASINO_URL } from "@/lib/constants";
 
 export function NavSheet() {
   const [open, setOpen] = useState(false);
@@ -29,7 +30,7 @@ export function NavSheet() {
 
   const links = [
     { href: "/", label: "Home", icon: Home },
-    { href: "/casino", label: "Spineazy Casino", icon: Dices },
+    { href: CASINO_URL, label: "Spineazy Casino", icon: Dices, external: true },
     { href: "/promotions", label: "Promotions", icon: Gift },
     ...(profile
       ? [
@@ -60,6 +61,8 @@ export function NavSheet() {
             <Link
               key={l.href}
               href={l.href}
+              target={l.external ? "_blank" : undefined}
+              rel={l.external ? "noopener noreferrer" : undefined}
               onClick={() => setOpen(false)}
               className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/90 hover:bg-accent"
             >

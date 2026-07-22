@@ -46,7 +46,7 @@ export function HeroCarousel({ slides }: { slides: Banner[] }) {
             )}
             <div
               className={cn(
-                "relative flex min-h-40 flex-col justify-center gap-1 px-5 py-5 lg:min-h-52 lg:px-8",
+                "relative flex min-h-[170px] flex-col justify-center gap-1 px-5 py-5 lg:min-h-[218px] lg:px-8",
                 slide.image_url ? "bg-black/55" : cn("bg-gradient-to-br", ACCENT_CLASS[slide.accent])
               )}
             >

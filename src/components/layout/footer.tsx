@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/layout/logo";
+import { CASINO_URL } from "@/lib/constants";
 
 const COLUMNS = [
   {
@@ -7,7 +8,7 @@ const COLUMNS = [
     links: [
       { href: "/about", label: "About EazyBet" },
       { href: "/promotions", label: "Promotions" },
-      { href: "/casino", label: "Spineazy Casino" },
+      { href: CASINO_URL, label: "Spineazy Casino", external: true },
       { href: "/account/referral", label: "Refer & Earn" },
     ],
   },
@@ -49,7 +50,12 @@ export function Footer() {
             <ul className="flex flex-col gap-1.5">
               {col.links.map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="text-sm text-foreground/80 hover:text-primary">
+                  <Link
+                    href={l.href}
+                    target={"external" in l && l.external ? "_blank" : undefined}
+                    rel={"external" in l && l.external ? "noopener noreferrer" : undefined}
+                    className="text-sm text-foreground/80 hover:text-primary"
+                  >
                     {l.label}
                   </Link>
                 </li>

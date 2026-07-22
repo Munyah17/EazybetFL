@@ -65,7 +65,7 @@ async function get<T>(path: string, params: Record<string, string> = {}): Promis
 
 export const oddsApi = {
   listSports: () => get<OddsApiSport[]>("/sports"),
-  getOdds: (sportKey: string, markets = "h2h,totals") =>
+  getOdds: (sportKey: string, markets = "h2h,spreads,totals") =>
     get<OddsApiEvent[]>(`/sports/${sportKey}/odds`, {
       regions: "uk,eu,us",
       markets,
