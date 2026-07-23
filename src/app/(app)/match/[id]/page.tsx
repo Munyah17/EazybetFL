@@ -2,17 +2,28 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { MarketCard } from "@/components/betting/market-card";
 import { getFixtureById } from "@/lib/data/fixtures";
+import { ensureExtraMarkets } from "@/lib/data/enrich-fixture";
 import { formatKickoff } from "@/lib/format";
 
-export const revalidate = 15;
+// Not statically revalidated -- enrichment writes need a live request each time.
+export const dynamic = "force-dynamic";
 
 export default async function MatchPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const fixture = await getFixtureById(id);
+  let fixture = await getFixtureById(id);
+  if (!fixture) notFound();
+
+  await ensureExtraMarkets(fixture);
+  // Re-fetch so the page reflects whatever enrichment just wrote (no-op,
+  // cheap read, if nothing changed or the fixture was already fresh).
+  fixture = await getFixtureById(id);
   if (!fixture) notFound();
 
   const isLive = fixture.status === "live";
-  const markets = [...fixture.markets].sort((a, b) => a.market_key.localeCompare(b.market_key));
+  const MARKET_ORDER = ["h2h", "double_chance", "draw_no_bet", "spreads", "alternate_spreads", "totals", "alternate_totals", "btts"];
+  const markets = [...fixture.markets].sort(
+    (a, b) => MARKET_ORDER.indexOf(a.market_key) - MARKET_ORDER.indexOf(b.market_key)
+  );
 
   return (
     <div className="flex flex-col">

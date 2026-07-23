@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { Logo } from "@/components/layout/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useSession } from "@/lib/auth/session-provider";
 import { CASINO_URL } from "@/lib/constants";
 
@@ -51,10 +52,11 @@ export function NavSheet() {
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-72 bg-sidebar p-0">
-        <SheetHeader className="border-b border-border px-4 py-4">
+        <SheetHeader className="flex-row items-center justify-between border-b border-border px-4 py-4">
           <SheetTitle>
             <Logo />
           </SheetTitle>
+          <ThemeToggle />
         </SheetHeader>
         <nav className="flex flex-col gap-1 p-3">
           {links.map((l) => (

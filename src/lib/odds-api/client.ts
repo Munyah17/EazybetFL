@@ -77,7 +77,24 @@ export const oddsApi = {
       daysFrom: String(daysFrom),
       dateFormat: "iso",
     }),
+  /** Per-event endpoint -- the only one that unlocks "additional markets"
+   * (btts, double chance, draw no bet, alternate lines) on our plan; the
+   * bulk /odds endpoint 422s on them. Costs quota per market x region, so
+   * this is called on demand for one fixture at a time, not in bulk. */
+  getEventOdds: (sportKey: string, eventId: string, markets: string) =>
+    get<OddsApiEvent>(`/sports/${sportKey}/events/${eventId}/odds`, {
+      regions: "uk,eu",
+      markets,
+      oddsFormat: "decimal",
+      dateFormat: "iso",
+    }),
 };
+
+/** Markets confirmed available on our plan via the per-event endpoint
+ * (verified live against the real API -- corners/cards markets were
+ * requested and are NOT offered by The Odds API for any sport, so they're
+ * deliberately excluded rather than faked). */
+export const EXTRA_MARKET_KEYS = "btts,double_chance,draw_no_bet,alternate_spreads,alternate_totals";
 
 export const DEFAULT_SYNC_SPORT_KEYS = [
   "soccer_epl",

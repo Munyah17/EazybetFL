@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatKickoff, formatOdds } from "@/lib/format";
-import { useBetslip } from "@/lib/betslip-store";
+import { useBetslip, type BetslipSelection } from "@/lib/betslip-store";
 import { h2hOutcomes, type FixtureWithOdds } from "@/lib/data/fixture-types";
 
 export function FixtureRow({ fixture }: { fixture: FixtureWithOdds }) {
@@ -38,7 +38,6 @@ export function FixtureRow({ fixture }: { fixture: FixtureWithOdds }) {
       {odds && (odds.home || odds.draw || odds.away) && (
         <div className="grid shrink-0 grid-cols-3 gap-1.5">
           <OddsButton
-            label="1"
             outcome={odds.home}
             fixture={fixture}
             marketId={odds.marketId}
@@ -48,7 +47,6 @@ export function FixtureRow({ fixture }: { fixture: FixtureWithOdds }) {
           />
           {odds.draw ? (
             <OddsButton
-              label="X"
               outcome={odds.draw}
               fixture={fixture}
               marketId={odds.marketId}
@@ -60,7 +58,6 @@ export function FixtureRow({ fixture }: { fixture: FixtureWithOdds }) {
             <div />
           )}
           <OddsButton
-            label="2"
             outcome={odds.away}
             fixture={fixture}
             marketId={odds.marketId}
@@ -82,21 +79,12 @@ function OddsButton({
   selections,
   onPick,
 }: {
-  label: string;
   outcome?: { id: string; name: string; price: number };
   fixture: FixtureWithOdds;
   marketId: string;
   marketName: string;
   selections: { outcomeId: string }[];
-  onPick: (s: {
-    outcomeId: string;
-    marketId: string;
-    fixtureId: string;
-    selectionName: string;
-    marketName: string;
-    fixtureLabel: string;
-    oddsPrice: number;
-  }) => void;
+  onPick: (s: BetslipSelection) => void;
 }) {
   if (!outcome) return <div />;
   const active = selections.some((s) => s.outcomeId === outcome.id);
@@ -112,6 +100,7 @@ function OddsButton({
           marketName,
           fixtureLabel: `${fixture.home_team} v ${fixture.away_team}`,
           oddsPrice: outcome.price,
+          commenceTime: fixture.commence_time,
         })
       }
       className={cn("odds-btn min-w-14", active && "odds-btn-active")}

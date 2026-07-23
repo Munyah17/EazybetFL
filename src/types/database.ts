@@ -290,7 +290,7 @@ export type Database = {
           selections: Json
           status: Database["public"]["Enums"]["booked_bet_status"]
           total_odds: number
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           bet_code: string
@@ -303,7 +303,7 @@ export type Database = {
           selections: Json
           status?: Database["public"]["Enums"]["booked_bet_status"]
           total_odds: number
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           bet_code?: string
@@ -316,7 +316,7 @@ export type Database = {
           selections?: Json
           status?: Database["public"]["Enums"]["booked_bet_status"]
           total_odds?: number
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -538,6 +538,7 @@ export type Database = {
           commence_time: string
           competition_id: string
           created_at: string
+          extra_markets_synced_at: string | null
           home_score: number | null
           home_team: string
           id: string
@@ -554,6 +555,7 @@ export type Database = {
           commence_time: string
           competition_id: string
           created_at?: string
+          extra_markets_synced_at?: string | null
           home_score?: number | null
           home_team: string
           id?: string
@@ -570,6 +572,7 @@ export type Database = {
           commence_time?: string
           competition_id?: string
           created_at?: string
+          extra_markets_synced_at?: string | null
           home_score?: number | null
           home_team?: string
           id?: string

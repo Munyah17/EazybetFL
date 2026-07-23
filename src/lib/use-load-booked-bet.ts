@@ -13,6 +13,7 @@ type RawSelection = {
   market_name: string;
   fixture_label: string;
   odds_price: number;
+  commence_time?: string;
 };
 
 function mapError(message: string) {
@@ -53,6 +54,7 @@ export function useLoadBookedBet() {
       marketName: s.market_name,
       fixtureLabel: s.fixture_label,
       oddsPrice: s.odds_price,
+      commenceTime: s.commence_time,
     }));
 
     loadSelections(mapped, result.bet_type);

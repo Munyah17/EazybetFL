@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { oddsApi, DEFAULT_SYNC_SPORT_KEYS, type OddsApiEvent } from "@/lib/odds-api/client";
+import { MARKET_NAMES } from "@/lib/odds-api/market-names";
 import { requireCronSecret } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
-
-const MARKET_NAMES: Record<string, string> = {
-  h2h: "Full Time Result",
-  totals: "Total Goals Over/Under",
-  spreads: "Handicap",
-};
 
 const PREFERRED_BOOKMAKERS = ["pinnacle", "bet365", "williamhill", "unibet", "betfair"];
 
@@ -146,9 +141,16 @@ export async function GET(req: NextRequest) {
     }
 
     if (outcomeRows.length) {
-      const { error: outcomesErr } = await supabase.from("odds_outcomes").insert(outcomeRows);
+      // Upsert rather than plain insert: the preceding delete isn't atomic
+      // with this insert across two overlapping requests, so if a race
+      // does happen this still can't create duplicate rows -- the unique
+      // constraint on (market_id, name, point) turns a would-be duplicate
+      // into an update instead.
+      const { error: outcomesErr } = await supabase
+        .from("odds_outcomes")
+        .upsert(outcomeRows, { onConflict: "market_id,name,point" });
       if (outcomesErr) {
-        results[key] = `odds_outcomes insert failed: ${outcomesErr.message}`;
+        results[key] = `odds_outcomes upsert failed: ${outcomesErr.message}`;
         continue;
       }
     }

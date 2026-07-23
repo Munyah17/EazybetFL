@@ -53,8 +53,48 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* EazyBet is a single always-dark brand surface — .dark is applied on <html> in layout.tsx */
-:root,
+/* Light mode -- next-themes toggles .dark on <html>; this is the default. */
+:root {
+  --background: #f6f8f7;
+  --foreground: #0c1210;
+  --surface: #ffffff;
+  --surface-2: #eef1ef;
+  --card: #ffffff;
+  --card-foreground: #0c1210;
+  --popover: #ffffff;
+  --popover-foreground: #0c1210;
+  --primary: #12b96a;
+  --primary-foreground: #ffffff;
+  --secondary: #eef1ef;
+  --secondary-foreground: #0c1210;
+  --muted: #eef1ef;
+  --muted-foreground: #5c6b64;
+  --accent: #e0f6ea;
+  --accent-foreground: #0c1210;
+  --destructive: #dc2626;
+  --win: #12b96a;
+  --boost: #b8860b;
+  --boost-foreground: #ffffff;
+  --border: rgba(10, 20, 16, 0.1);
+  --input: rgba(10, 20, 16, 0.14);
+  --ring: rgba(18, 185, 106, 0.45);
+  --chart-1: #12b96a;
+  --chart-2: #b8860b;
+  --chart-3: #2f7fd6;
+  --chart-4: #dc2626;
+  --chart-5: #5c6b64;
+  --radius: 0.25rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0c1210;
+  --sidebar-primary: #12b96a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef1ef;
+  --sidebar-accent-foreground: #0c1210;
+  --sidebar-border: rgba(10, 20, 16, 0.1);
+  --sidebar-ring: rgba(18, 185, 106, 0.45);
+}
+
+/* Dark mode (default theme -- see ThemeProvider defaultTheme in layout.tsx) */
 .dark {
   --background: #0a0f0d;
   --foreground: #eef5f1;

@@ -8,7 +8,8 @@ export { h2hOutcomes } from "@/lib/data/fixture-types";
 type FixtureStatus = Database["public"]["Enums"]["fixture_status"];
 
 const FIXTURE_SELECT = `
-  id, home_team, away_team, commence_time, status, home_score, away_score, minute,
+  id, odds_api_event_id, home_team, away_team, commence_time, status, home_score, away_score, minute,
+  extra_markets_synced_at,
   competition:competitions ( id, title, odds_api_key, sport_group:sport_groups ( id, key, name, icon ) ),
   markets ( id, market_key, market_name, status, odds_outcomes ( id, name, point, price, display_order ) )
 `;

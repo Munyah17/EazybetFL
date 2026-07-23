@@ -13,6 +13,7 @@ export type BetslipSelection = {
   marketName: string;
   fixtureLabel: string;
   oddsPrice: number;
+  commenceTime?: string;
 };
 
 type BetslipState = {
@@ -21,6 +22,7 @@ type BetslipState = {
   stake: number;
   systemSize: number | null;
   winboost: boolean;
+  acceptOddsChanges: boolean;
   isOpen: boolean;
   addSelection: (s: BetslipSelection) => void;
   removeSelection: (outcomeId: string) => void;
@@ -29,8 +31,10 @@ type BetslipState = {
   setStake: (n: number) => void;
   setSystemSize: (n: number | null) => void;
   setWinboost: (b: boolean) => void;
+  setAcceptOddsChanges: (b: boolean) => void;
   setOpen: (b: boolean) => void;
   loadSelections: (s: BetslipSelection[], betType: BetType) => void;
+  updateOddsPrices: (updates: Record<string, number>) => void;
 };
 
 export const useBetslip = create<BetslipState>()(
@@ -41,6 +45,7 @@ export const useBetslip = create<BetslipState>()(
       stake: 5,
       systemSize: null,
       winboost: true,
+      acceptOddsChanges: true,
       isOpen: false,
       addSelection: (s) => {
         const existing = get().selections;
@@ -66,8 +71,15 @@ export const useBetslip = create<BetslipState>()(
       setStake: (n) => set({ stake: n }),
       setSystemSize: (n) => set({ systemSize: n }),
       setWinboost: (b) => set({ winboost: b }),
+      setAcceptOddsChanges: (b) => set({ acceptOddsChanges: b }),
       setOpen: (b) => set({ isOpen: b }),
       loadSelections: (s, betType) => set({ selections: s, betType, isOpen: true }),
+      updateOddsPrices: (updates) =>
+        set({
+          selections: get().selections.map((s) =>
+            s.outcomeId in updates ? { ...s, oddsPrice: updates[s.outcomeId] } : s
+          ),
+        }),
     }),
     { name: "eazybet-betslip" }
   )

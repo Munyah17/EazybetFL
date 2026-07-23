@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
 import { NavSheet } from "@/components/layout/nav-sheet";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useSession } from "@/lib/auth/session-provider";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -54,7 +55,8 @@ export function SiteHeader() {
         })}
       </nav>
 
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex items-center justify-end gap-2">
+        <ThemeToggle />
         {profile ? (
           <>
             <Link

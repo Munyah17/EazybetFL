@@ -41,6 +41,7 @@ export function MarketCard({
                   marketName: market.market_name,
                   fixtureLabel: `${fixture.home_team} v ${fixture.away_team}`,
                   oddsPrice: o.price,
+                  commenceTime: fixture.commence_time,
                 })
               }
               className={cn(

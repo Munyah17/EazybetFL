@@ -1,50 +1,59 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { X, Info, Minus, Plus } from "lucide-react";
+import { X, Info, Minus, Plus, Trash2, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useBetslip, computeTotalOdds, type BetType } from "@/lib/betslip-store";
 import { useSession } from "@/lib/auth/session-provider";
 import { createClient } from "@/lib/supabase/client";
-import { formatMoney, formatOdds } from "@/lib/format";
+import { formatMoney, formatOdds, formatKickoff } from "@/lib/format";
+import { useLoadBookedBet } from "@/lib/use-load-booked-bet";
 import { BookBetDialog } from "@/components/betting/book-bet-dialog";
 
 const STAKE_PRESETS = [1, 2, 5, 10, 20, 50];
+const MIN_STAKE = 1;
 
 export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
   const supabase = createClient();
   const router = useRouter();
-  const { profile, wallet, refreshWallet } = useSession();
+  const { profile, wallet, openBetsCount, refreshWallet } = useSession();
   const {
     selections,
     betType,
     stake,
     systemSize,
     winboost,
+    acceptOddsChanges,
     removeSelection,
     setBetType,
     setStake,
     setSystemSize,
     setWinboost,
+    setAcceptOddsChanges,
     clear,
+    updateOddsPrices,
   } = useBetslip();
+  const { load: loadByCode, loading: loadingCode } = useLoadBookedBet();
 
   const [placing, setPlacing] = useState(false);
   const [booking, setBooking] = useState(false);
   const [bookedCode, setBookedCode] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [boostBannerDismissed, setBoostBannerDismissed] = useState(false);
 
   const totalOdds = useMemo(
     () => computeTotalOdds(selections, winboost, betType),
     [selections, winboost, betType]
   );
   const baseOdds = useMemo(() => computeTotalOdds(selections, false, betType), [selections, betType]);
-  const boosted = betType === "multiple" && winboost && selections.length >= 3;
 
   // Multiple/System require 2+ legs (enforced by fn_place_bet too) -- with
   // fewer than 2 selections there's only ever a single bet to place. Once
@@ -54,6 +63,7 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
   // Multiple on the 1->2 selection transition lives in the store's
   // addSelection, not here.
   const effectiveBetType: BetType = selections.length < 2 ? "single" : betType;
+  const boosted = effectiveBetType === "multiple" && winboost && selections.length >= 3;
 
   const potentialWin =
     effectiveBetType === "single"
@@ -64,8 +74,15 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
           ? (stake / choose(selections.length, systemSize)) *
             selections.reduce((acc, s) => acc * s.oddsPrice, 1)
           : 0;
+  const baseWin = effectiveBetType === "multiple" ? stake * baseOdds : potentialWin;
+  const boostAmount = boosted ? potentialWin - baseWin : 0;
 
   const totalStakeRequired = effectiveBetType === "single" ? stake * selections.length : stake;
+
+  async function handleLoadCode() {
+    const ok = await loadByCode(code);
+    if (ok) setCode("");
+  }
 
   async function handlePlaceBet() {
     if (!profile) {
@@ -81,6 +98,27 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
     if (effectiveBetType === "system" && (!systemSize || systemSize >= selections.length)) {
       toast.error("Choose a valid system size");
       return;
+    }
+
+    if (!acceptOddsChanges) {
+      const { data: fresh } = await supabase
+        .from("odds_outcomes")
+        .select("id, price")
+        .in(
+          "id",
+          selections.map((s) => s.outcomeId)
+        );
+      const changed = (fresh ?? []).filter((o) => {
+        const sel = selections.find((s) => s.outcomeId === o.id);
+        return sel && Math.abs(sel.oddsPrice - o.price) > 0.001;
+      });
+      if (changed.length > 0) {
+        updateOddsPrices(Object.fromEntries(changed.map((o) => [o.id, o.price])));
+        toast.error("Odds have changed", {
+          description: `${changed.length} selection${changed.length > 1 ? "s" : ""} updated. Review and place again.`,
+        });
+        return;
+      }
     }
 
     setPlacing(true);
@@ -125,9 +163,22 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
   return (
     <>
       <div className="flex flex-1 flex-col overflow-y-auto">
-        <div className="px-4 pt-3">
+        <div className="flex shrink-0 flex-col gap-1.5 p-3">
+          <span className="flex items-center justify-center gap-1.5 bg-primary py-2 text-sm font-bold text-primary-foreground">
+            Betslip
+            {selections.length > 0 && <span>({selections.length})</span>}
+          </span>
+          <Link
+            href="/bets"
+            className="flex items-center justify-center gap-1.5 border border-border bg-secondary py-2 text-sm font-bold text-secondary-foreground hover:bg-accent"
+          >
+            My Bets {profile && <span>({openBetsCount})</span>}
+          </Link>
+        </div>
+
+        <div className="px-3">
           <Tabs value={effectiveBetType} onValueChange={(v) => setBetType(v as BetType)}>
-            <TabsList className="w-full">
+            <TabsList variant="line" className="w-full border-b border-border">
               <TabsTrigger value="single" className="flex-1">
                 Single
               </TabsTrigger>
@@ -141,17 +192,74 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
           </Tabs>
         </div>
 
-        {selections.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center text-muted-foreground">
-            <p className="text-sm">Your betslip is empty.</p>
-            <p className="text-xs">Tap on any odds to add a selection.</p>
+        {boosted && !boostBannerDismissed && (
+          <div className="mx-3 mt-2.5 flex items-start gap-2 bg-boost/15 px-3 py-2.5 text-xs">
+            <Info className="mt-0.5 size-3.5 shrink-0 text-boost" />
+            <p className="flex-1 text-foreground/90">
+              <span className="font-bold text-boost">WinBoost active:</span> your odds are boosted +3% for
+              this {selections.length}-selection multiple.
+            </p>
+            <button
+              onClick={() => setBoostBannerDismissed(true)}
+              aria-label="Dismiss"
+              className="shrink-0 text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
           </div>
+        )}
+
+        {selections.length === 0 ? (
+          <>
+            <div className="flex items-center gap-2 px-3 pt-3">
+              <Input
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === "Enter" && handleLoadCode()}
+                placeholder="Booking Code"
+                className="font-mono text-xs tracking-wide"
+              />
+              <Button size="sm" variant="outline" disabled={loadingCode} onClick={handleLoadCode}>
+                {loadingCode ? "…" : "Load"}
+              </Button>
+            </div>
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-14 text-center text-muted-foreground">
+              <Receipt className="size-9 opacity-40" />
+              <p className="text-sm font-medium text-foreground">Your Betslip Is Empty</p>
+              <p className="text-xs">Please add some selections to place a bet.</p>
+            </div>
+          </>
         ) : (
-          <div className="flex flex-col gap-2 px-4 py-3">
-            {selections.map((s) => (
-              <div key={s.outcomeId} className="flex items-start justify-between gap-2 bg-card px-3 py-2.5">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
+          <>
+            <div className="flex items-center justify-between px-3 pt-3">
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Checkbox checked={acceptOddsChanges} onCheckedChange={(v) => setAcceptOddsChanges(!!v)} />
+                Accept Odds Changes
+              </label>
+              <button
+                onClick={clear}
+                className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-destructive"
+              >
+                Remove All <Trash2 className="size-3.5" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2 px-3 py-3">
+              {selections.map((s) => (
+                <div key={s.outcomeId} className="flex items-start justify-between gap-2 bg-card px-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold">{s.fixtureLabel}</span>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {s.marketName} - {s.selectionName}
+                    </p>
+                    {s.commenceTime && (
+                      <p className="text-[11px] text-muted-foreground/80">{formatKickoff(s.commenceTime)}</p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <span className="bg-secondary px-2 py-0.5 text-sm font-bold text-primary">
+                      {formatOdds(s.oddsPrice)}
+                    </span>
                     <button
                       onClick={() => removeSelection(s.outcomeId)}
                       className="text-muted-foreground hover:text-destructive"
@@ -159,19 +267,15 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
                     >
                       <X className="size-3.5" />
                     </button>
-                    <span className="truncate text-sm font-semibold">{s.selectionName}</span>
                   </div>
-                  <p className="pl-5 text-xs text-muted-foreground">{s.marketName}</p>
-                  <p className="truncate pl-5 text-xs text-muted-foreground">{s.fixtureLabel}</p>
                 </div>
-                <span className="shrink-0 text-sm font-bold text-primary">{formatOdds(s.oddsPrice)}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
 
         {selections.length > 0 && (
-          <div className="flex flex-col gap-3 px-4 pb-4">
+          <div className="flex flex-col gap-3 px-3 pb-4">
             {effectiveBetType === "system" && (
               <div className="flex items-center justify-between bg-card px-3 py-2.5">
                 <span className="text-sm font-medium">System size</span>
@@ -200,19 +304,8 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
                     WinBoost
                   </span>
                   <span className="text-xs font-semibold text-boost">+3%</span>
-                  <Info className="size-3.5 text-muted-foreground" />
                 </div>
                 <Switch checked={winboost} onCheckedChange={setWinboost} />
-              </div>
-            )}
-
-            {effectiveBetType !== "single" && (
-              <div className="flex items-center justify-between px-1">
-                <span className="text-sm text-muted-foreground">Total Odds</span>
-                <div className="text-right">
-                  <span className="text-sm font-bold">{formatOdds(totalOdds)}</span>
-                  {boosted && <p className="text-[11px] text-boost">Boosted from {formatOdds(baseOdds)}</p>}
-                </div>
               </div>
             )}
 
@@ -225,23 +318,27 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
                   variant="secondary"
                   size="icon"
                   className="size-7"
-                  onClick={() => setStake(Math.max(1, stake - 1))}
+                  onClick={() => setStake(Math.max(MIN_STAKE, stake - 1))}
                 >
                   <Minus className="size-3.5" />
                 </Button>
-                <Input
-                  type="number"
-                  min={0.5}
-                  step={0.5}
-                  value={stake}
-                  onChange={(e) => setStake(Number(e.target.value) || 0)}
-                  className="w-20 text-center"
-                />
+                <div className="flex items-center border border-input">
+                  <Input
+                    type="number"
+                    min={MIN_STAKE}
+                    step={0.5}
+                    value={stake}
+                    onChange={(e) => setStake(Number(e.target.value) || 0)}
+                    className="w-16 border-0 text-center"
+                  />
+                  <span className="pr-2.5 text-xs font-medium text-muted-foreground">USD</span>
+                </div>
                 <Button variant="secondary" size="icon" className="size-7" onClick={() => setStake(stake + 1)}>
                   <Plus className="size-3.5" />
                 </Button>
               </div>
             </div>
+            <p className="-mt-2 text-right text-[11px] text-muted-foreground">Min Stake is {MIN_STAKE}</p>
 
             <div className="flex flex-wrap gap-1.5">
               {STAKE_PRESETS.map((v) => (
@@ -255,13 +352,27 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
               ))}
             </div>
 
-            <div className="flex items-center justify-between px-1">
-              <span className="text-sm text-muted-foreground">
-                {effectiveBetType === "single" ? "Total Stake" : "Potential Win"}
-              </span>
-              <span className="text-base font-bold text-primary">
-                {effectiveBetType === "single" ? formatMoney(totalStakeRequired) : formatMoney(potentialWin)}
-              </span>
+            <div className="flex flex-col gap-1.5 border-t border-border pt-3">
+              {effectiveBetType !== "single" && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Total Odds</span>
+                  <span className="text-sm font-bold">{formatOdds(totalOdds)}</span>
+                </div>
+              )}
+              {boosted && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Win Boost (3%)</span>
+                  <span className="text-sm font-bold text-boost">+{formatMoney(boostAmount)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold">
+                  {effectiveBetType === "single" ? "Total Stake" : "Max Payout"}
+                </span>
+                <span className="text-base font-bold text-primary">
+                  {effectiveBetType === "single" ? formatMoney(totalStakeRequired) : formatMoney(potentialWin)}
+                </span>
+              </div>
             </div>
           </div>
         )}

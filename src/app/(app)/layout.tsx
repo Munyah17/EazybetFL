@@ -18,6 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   let profile = null;
   let wallet = null;
+  let openBetsCount = 0;
 
   const [sidebarTree, announcement, sessionData] = await Promise.all([
     getSidebarTree(),
@@ -26,6 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ? Promise.all([
           supabase.from("profiles").select("*").eq("id", user.id).single(),
           supabase.from("wallets").select("*").eq("user_id", user.id).single(),
+          supabase.from("bets").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "open"),
         ])
       : Promise.resolve(null),
   ]);
@@ -33,10 +35,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (sessionData) {
     profile = sessionData[0].data;
     wallet = sessionData[1].data;
+    openBetsCount = sessionData[2].count ?? 0;
   }
 
   return (
-    <SessionProvider initialProfile={profile} initialWallet={wallet}>
+    <SessionProvider initialProfile={profile} initialWallet={wallet} initialOpenBetsCount={openBetsCount}>
       <AnnouncementBar announcement={announcement} />
       <SiteHeader />
       <div className="mx-auto flex w-full max-w-[1440px]">

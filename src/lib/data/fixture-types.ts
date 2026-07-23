@@ -5,6 +5,7 @@
 
 export type FixtureWithOdds = {
   id: string;
+  odds_api_event_id: string | null;
   home_team: string;
   away_team: string;
   commence_time: string;
@@ -12,6 +13,7 @@ export type FixtureWithOdds = {
   home_score: number | null;
   away_score: number | null;
   minute: number | null;
+  extra_markets_synced_at: string | null;
   competition: {
     id: string;
     title: string;

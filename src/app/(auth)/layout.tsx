@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,7 +17,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <Link href="/" aria-label="Back to EazyBet home" className="mx-auto">
           <Logo className="text-2xl" />
         </Link>
-        <span />
+        <div className="flex justify-end">
+          <ThemeToggle />
+        </div>
       </header>
       <main className="flex flex-1 flex-col justify-center px-5 py-8">
         <div className="mx-auto w-full max-w-sm">{children}</div>
