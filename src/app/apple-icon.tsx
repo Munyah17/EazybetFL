@@ -1,9 +1,9 @@
 import { ImageResponse } from "next/og";
 
-export const size = { width: 64, height: 64 };
+export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
-export default function Icon() {
+export default function AppleIcon() {
   return new ImageResponse(
     (
       <div
@@ -14,16 +14,15 @@ export default function Icon() {
           alignItems: "center",
           justifyContent: "center",
           background: "#0a0f0d",
-          borderRadius: 14,
         }}
       >
         <div
           style={{
             display: "flex",
-            fontSize: 34,
+            fontSize: 92,
             fontWeight: 800,
             fontFamily: "sans-serif",
-            letterSpacing: -1.5,
+            letterSpacing: -4,
           }}
         >
           <span style={{ color: "#eef5f1" }}>E</span>
