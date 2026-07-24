@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { toast } from "sonner";
 
 export type BetType = "single" | "multiple" | "system";
 
@@ -51,11 +52,17 @@ export const useBetslip = create<BetslipState>()(
         const existing = get().selections;
         // Same-market swap: replacing a pick within a market a user already
         // has a selection in (e.g. changing 1X2 pick) rather than stacking it.
+        const swappedOut = existing.find((x) => x.marketId === s.marketId && x.outcomeId !== s.outcomeId);
         const withoutSameMarket = existing.filter((x) => x.marketId !== s.marketId);
         const already = existing.find((x) => x.outcomeId === s.outcomeId);
         if (already) {
           set({ selections: existing.filter((x) => x.outcomeId !== s.outcomeId), isOpen: true });
           return;
+        }
+        if (swappedOut) {
+          toast.info("Pick replaced", {
+            description: `Swapped "${swappedOut.selectionName}" for "${s.selectionName}" in the same market.`,
+          });
         }
         const next = [...withoutSameMarket, s];
         set({

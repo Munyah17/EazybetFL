@@ -190,6 +190,11 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+          {selections.length === 1 && (
+            <p className="pt-1.5 text-[11px] text-muted-foreground">
+              Add 1 more selection to unlock Multiple &amp; System bets.
+            </p>
+          )}
         </div>
 
         {boosted && !boostBannerDismissed && (
