@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSuccessStatusMessage } from "@/lib/ecocash/client";
+import { sendEmail } from "@/lib/email/send";
+import { depositCompletedEmail } from "@/lib/email/templates";
+import { formatMoney } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +21,7 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { data: deposit } = await admin
     .from("deposits")
-    .select("id, status")
+    .select("id, status, amount, profiles(email)")
     .eq("client_correlator", payload.clientCorrelator)
     .maybeSingle();
 
@@ -32,6 +35,10 @@ export async function POST(req: NextRequest) {
 
   if (isSuccessStatusMessage(payload.statusMessage ?? "")) {
     await admin.rpc("fn_complete_deposit", { p_deposit_id: deposit.id });
+    const email = deposit.profiles?.email;
+    if (email) {
+      await sendEmail(email, "Deposit received", depositCompletedEmail(formatMoney(Number(deposit.amount)), "EcoCash"));
+    }
   } else {
     await admin.rpc("fn_fail_deposit", { p_deposit_id: deposit.id });
     await admin.from("deposits").update({ status: "failed" }).eq("id", deposit.id);

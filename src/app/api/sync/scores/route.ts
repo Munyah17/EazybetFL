@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { oddsApi, DEFAULT_SYNC_SPORT_KEYS } from "@/lib/odds-api/client";
 import { requireCronSecret } from "@/lib/cron-auth";
+import { sendEmail } from "@/lib/email/send";
+import { betWonEmail } from "@/lib/email/templates";
+import { formatMoney } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -108,7 +111,10 @@ export async function GET(req: NextRequest) {
   }
 
   // Settle any bet whose every selection now has a final status.
-  const { data: openBets } = await supabase.from("bets").select("id").eq("status", "open");
+  const { data: openBets } = await supabase
+    .from("bets")
+    .select("id, bet_type, profiles(email)")
+    .eq("status", "open");
   for (const bet of openBets ?? []) {
     const { data: selections } = await supabase
       .from("bet_selections")
@@ -117,8 +123,15 @@ export async function GET(req: NextRequest) {
     const allResolved = (selections ?? []).every((s) => s.status !== "pending");
     if (!allResolved || !selections?.length) continue;
 
-    const { error } = await supabase.rpc("fn_settle_bet", { p_bet_id: bet.id });
-    if (!error) settledBets++;
+    const { data: result, error } = await supabase.rpc("fn_settle_bet", { p_bet_id: bet.id });
+    if (error) continue;
+    settledBets++;
+
+    const settled = result as { status: string; payout: number } | null;
+    const email = bet.profiles?.email;
+    if (settled?.status === "won" && settled.payout > 0 && email) {
+      await sendEmail(email, "You won! 🎉", betWonEmail(formatMoney(settled.payout), bet.bet_type));
+    }
   }
 
   return NextResponse.json({ finished: summary, settledBets });

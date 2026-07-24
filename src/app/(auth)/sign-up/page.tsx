@@ -59,6 +59,7 @@ export default function SignUpPage() {
     }
 
     toast.success("Account created!", { description: "Welcome to EazyBet." });
+    fetch("/api/notify/welcome", { method: "POST" }).catch(() => {});
     router.push("/");
     router.refresh();
   }

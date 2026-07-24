@@ -68,6 +68,11 @@ export default function WithdrawPage() {
     toast.success("Withdrawal requested", {
       description: "We'll process it within 1-2 hours.",
     });
+    fetch("/api/notify/withdrawal-requested", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: amt, method }),
+    }).catch(() => {});
     await refreshWallet();
     router.push("/wallet");
   }

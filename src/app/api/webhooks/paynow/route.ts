@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyPaynowWebhook, isPaynowPaid } from "@/lib/paynow/client";
+import { sendEmail } from "@/lib/email/send";
+import { depositCompletedEmail } from "@/lib/email/templates";
+import { formatMoney } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +19,7 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { data: deposit } = await admin
     .from("deposits")
-    .select("id, status")
+    .select("id, status, amount, method, user_id, profiles(email)")
     .eq("id", reference)
     .maybeSingle();
 
@@ -27,6 +30,14 @@ export async function POST(req: NextRequest) {
 
   if (isPaynowPaid(fields.status ?? "")) {
     await admin.rpc("fn_complete_deposit", { p_deposit_id: deposit.id });
+    const email = deposit.profiles?.email;
+    if (email) {
+      await sendEmail(
+        email,
+        "Deposit received",
+        depositCompletedEmail(formatMoney(Number(deposit.amount)), deposit.method)
+      );
+    }
   } else if ((fields.status ?? "").toLowerCase() === "cancelled") {
     await admin.rpc("fn_fail_deposit", { p_deposit_id: deposit.id });
     await admin.from("deposits").update({ status: "failed" }).eq("id", deposit.id);

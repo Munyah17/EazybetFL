@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ecocashCharge, normalizeMsisdn, isSuccessStatusMessage } from "@/lib/ecocash/client";
+import { sendEmail } from "@/lib/email/send";
+import { depositCompletedEmail } from "@/lib/email/templates";
+import { formatMoney } from "@/lib/format";
 import type { Json } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -77,6 +80,9 @@ export async function POST(req: NextRequest) {
 
     if (isSuccessStatusMessage(charge.statusMessage)) {
       await admin.rpc("fn_complete_deposit", { p_deposit_id: deposit.id });
+      if (user.email) {
+        await sendEmail(user.email, "Deposit received", depositCompletedEmail(formatMoney(amount), "EcoCash"));
+      }
       return NextResponse.json({ status: "completed", depositId: deposit.id, amount });
     }
 

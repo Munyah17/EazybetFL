@@ -51,14 +51,20 @@ export function WithdrawalRow({ withdrawal }: { withdrawal: Withdrawal }) {
       return;
     }
     toast.success("Withdrawal approved");
+    fetch("/api/notify/withdrawal-decision", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ withdrawalId: withdrawal.id, approved: true }),
+    }).catch(() => {});
     router.refresh();
   }
 
   async function reject() {
     setLoading("reject");
+    const reason = "Rejected by admin";
     const { error } = await supabase.rpc("fn_reject_withdrawal", {
       p_withdrawal_id: withdrawal.id,
-      p_reason: "Rejected by admin",
+      p_reason: reason,
     });
     setLoading(null);
     if (error) {
@@ -66,6 +72,11 @@ export function WithdrawalRow({ withdrawal }: { withdrawal: Withdrawal }) {
       return;
     }
     toast.success("Withdrawal rejected and refunded");
+    fetch("/api/notify/withdrawal-decision", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ withdrawalId: withdrawal.id, approved: false, reason }),
+    }).catch(() => {});
     router.refresh();
   }
 
