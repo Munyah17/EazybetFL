@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatMoney, formatOdds, formatKickoff } from "@/lib/format";
 import { useLoadBookedBet } from "@/lib/use-load-booked-bet";
 import { BookBetDialog } from "@/components/betting/book-bet-dialog";
+import { cn } from "@/lib/utils";
 
 const STAKE_PRESETS = [1, 2, 5, 10, 20, 50];
 const MIN_STAKE = 1;
@@ -182,10 +183,18 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
               <TabsTrigger value="single" className="flex-1">
                 Single
               </TabsTrigger>
-              <TabsTrigger value="multiple" className="flex-1" disabled={selections.length < 2}>
+              <TabsTrigger
+                value="multiple"
+                className={cn("flex-1", selections.length >= 2 && "text-foreground/90")}
+                disabled={selections.length < 2}
+              >
                 Multiple
               </TabsTrigger>
-              <TabsTrigger value="system" className="flex-1" disabled={selections.length < 2}>
+              <TabsTrigger
+                value="system"
+                className={cn("flex-1", selections.length >= 2 && "text-foreground/90")}
+                disabled={selections.length < 2}
+              >
                 System
               </TabsTrigger>
             </TabsList>
@@ -214,26 +223,29 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
           </div>
         )}
 
+        {/* Always available, regardless of whether the betslip already has
+         * selections -- previously this only showed in the empty state,
+         * so it "disappeared" (and looked broken) the moment you had a
+         * pick in progress. */}
+        <div className="flex items-center gap-2 px-3 pt-3">
+          <Input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onKeyDown={(e) => e.key === "Enter" && handleLoadCode()}
+            placeholder="Booking Code"
+            className="font-mono text-xs tracking-wide"
+          />
+          <Button size="sm" variant="outline" disabled={loadingCode} onClick={handleLoadCode}>
+            {loadingCode ? "…" : "Load"}
+          </Button>
+        </div>
+
         {selections.length === 0 ? (
-          <>
-            <div className="flex items-center gap-2 px-3 pt-3">
-              <Input
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                onKeyDown={(e) => e.key === "Enter" && handleLoadCode()}
-                placeholder="Booking Code"
-                className="font-mono text-xs tracking-wide"
-              />
-              <Button size="sm" variant="outline" disabled={loadingCode} onClick={handleLoadCode}>
-                {loadingCode ? "…" : "Load"}
-              </Button>
-            </div>
-            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-14 text-center text-muted-foreground">
-              <Receipt className="size-9 opacity-40" />
-              <p className="text-sm font-medium text-foreground">Your Betslip Is Empty</p>
-              <p className="text-xs">Please add some selections to place a bet.</p>
-            </div>
-          </>
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-14 text-center text-muted-foreground">
+            <Receipt className="size-9 opacity-40" />
+            <p className="text-sm font-medium text-foreground">Your Betslip Is Empty</p>
+            <p className="text-xs">Please add some selections to place a bet.</p>
+          </div>
         ) : (
           <>
             <div className="flex items-center justify-between px-3 pt-3">

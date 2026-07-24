@@ -4,11 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Logo } from "@/components/layout/logo";
 import { NavSheet } from "@/components/layout/nav-sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useSession } from "@/lib/auth/session-provider";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CASINO_URL } from "@/lib/constants";
 
@@ -55,24 +56,35 @@ export function SiteHeader() {
         })}
       </nav>
 
+      {/* Desktop: theme toggle, My Account, balance/auth. Mobile: just an
+       * avatar (or auth buttons) -- everything else lives in the drawer. */}
       <div className="flex items-center justify-end gap-2">
-        <ThemeToggle />
+        <div className="hidden items-center gap-2 lg:flex">
+          <ThemeToggle />
+          {profile && (
+            <Link href="/account" className="text-sm font-medium text-foreground/80 hover:text-foreground">
+              My Account
+            </Link>
+          )}
+        </div>
+
         {profile ? (
           <>
             <Link
-              href="/account"
-              className="hidden text-sm font-medium text-foreground/80 hover:text-foreground lg:block"
-            >
-              My Account
-            </Link>
-            <Link
               href="/wallet"
-              className="flex items-center gap-2 rounded bg-secondary px-3 py-1.5 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-accent"
+              className="hidden items-center gap-2 rounded bg-secondary px-3 py-1.5 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-accent lg:flex"
             >
               {formatMoney(wallet?.balance ?? 0)}
               <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <Plus className="size-3.5" />
               </span>
+            </Link>
+            <Link href="/account" className="lg:hidden" aria-label="My Account">
+              <Avatar className="size-8">
+                <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
+                  {initials(profile.full_name)}
+                </AvatarFallback>
+              </Avatar>
             </Link>
           </>
         ) : (

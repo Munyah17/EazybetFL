@@ -36,11 +36,12 @@ export function BookBetDialog({ code, onClose }: { code: string | null; onClose:
           Use the code below to load your bet later.
         </p>
 
-        <div className="mx-auto flex w-full items-center justify-between rounded-xl border-2 border-dashed border-primary/50 bg-primary/5 px-4 py-3">
+        <div className="relative mx-auto flex w-full items-center justify-center rounded-xl border-2 border-dashed border-primary/50 bg-primary/5 px-4 py-3">
           <span className="font-mono text-lg font-bold tracking-widest">{code}</span>
           <Button
             variant="ghost"
             size="icon"
+            className="absolute right-2 top-1/2 -translate-y-1/2"
             onClick={() => {
               if (code) navigator.clipboard.writeText(code);
               setCopied(true);
