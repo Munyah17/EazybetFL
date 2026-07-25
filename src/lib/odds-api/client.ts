@@ -1,5 +1,31 @@
 const BASE_URL = process.env.ODDS_API_BASE_URL ?? "https://api.the-odds-api.com/v4";
-const API_KEY = process.env.ODDS_API_KEY!;
+
+/** Same provider, 3 separate keys/accounts -- The Odds API's monthly quota is
+ * per-key, so rotating to the next key on exhaustion instead of failing outright
+ * keeps syncing working once the first key(s) run out for the month. */
+const API_KEYS = [
+  process.env.ODDS_API_KEY,
+  process.env.ODDS_API_KEY_FALLBACK_1,
+  process.env.ODDS_API_KEY_FALLBACK_2,
+].filter((k): k is string => Boolean(k));
+
+if (API_KEYS.length === 0) {
+  throw new Error("No ODDS_API_KEY configured");
+}
+
+/** Index of the key currently believed to have quota left. Advances forward
+ * only -- persists for the lifetime of the warm serverless instance (Fluid
+ * Compute reuses instances across requests), so once a key is found
+ * exhausted we stop wasting requests retrying it every sync run. Resets to
+ * 0 on cold start, which just costs one wasted request against a
+ * still-exhausted key before it re-advances -- cheap and self-healing. */
+let activeKeyIndex = 0;
+
+function isQuotaExceeded(status: number, body: string) {
+  if (status !== 401) return false;
+  const lower = body.toLowerCase();
+  return lower.includes("quota") || lower.includes("usage credit");
+}
 
 export type OddsApiSport = {
   key: string;
@@ -51,20 +77,36 @@ export type OddsApiScoreEvent = {
 };
 
 async function get<T>(path: string, params: Record<string, string> = {}): Promise<T> {
-  const url = new URL(BASE_URL + path);
-  url.searchParams.set("apiKey", API_KEY);
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  let lastError = "";
 
-  const res = await fetch(url.toString(), { cache: "no-store" });
-  if (!res.ok) {
+  for (let attempt = 0; attempt < API_KEYS.length; attempt++) {
+    const key = API_KEYS[activeKeyIndex];
+    const url = new URL(BASE_URL + path);
+    url.searchParams.set("apiKey", key);
+    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+
+    const res = await fetch(url.toString(), { cache: "no-store" });
+    if (res.ok) return res.json();
+
     const body = await res.text();
+    if (isQuotaExceeded(res.status, body) && activeKeyIndex < API_KEYS.length - 1) {
+      activeKeyIndex++;
+      lastError = `key ${activeKeyIndex} exhausted: ${res.status} ${body}`;
+      continue;
+    }
+
     throw new Error(`Odds API ${path} failed: ${res.status} ${body}`);
   }
-  return res.json();
+
+  throw new Error(`Odds API ${path} failed on all ${API_KEYS.length} keys: ${lastError}`);
 }
 
 export const oddsApi = {
-  listSports: () => get<OddsApiSport[]>("/sports"),
+  /** all=true includes out-of-season sports/competitions too -- without it
+   * the API only returns whatever's currently active, which is why the
+   * catalog was collapsing down to just 2-3 sports depending on the time
+   * of year. */
+  listSports: () => get<OddsApiSport[]>("/sports", { all: "true" }),
   getOdds: (sportKey: string, markets = "h2h,spreads,totals") =>
     get<OddsApiEvent[]>(`/sports/${sportKey}/odds`, {
       regions: "uk,eu,us",
@@ -102,9 +144,17 @@ export const DEFAULT_SYNC_SPORT_KEYS = [
   "soccer_uefa_champs_league",
   "soccer_italy_serie_a",
   "soccer_germany_bundesliga",
+  "soccer_france_ligue_one",
+  "soccer_uefa_europa_league",
   "basketball_nba",
+  "basketball_ncaab",
   "icehockey_nhl",
   "americanfootball_nfl",
+  "americanfootball_ncaaf",
+  "baseball_mlb",
+  "rugbyleague_nrl",
+  "boxing_boxing",
+  "mma_mixed_martial_arts",
 ];
 
 const GROUP_ICON: Record<string, string> = {
