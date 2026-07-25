@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 
 export default function SecurityPage() {
   const supabase = createClient();
@@ -28,7 +29,7 @@ export default function SecurityPage() {
     const { error } = await supabase.auth.updateUser({ password });
     setSaving(false);
     if (error) {
-      toast.error("Could not update password", { description: error.message });
+      toast.error("Could not update password", { description: friendlyError(error) });
       return;
     }
     toast.success("Password updated");

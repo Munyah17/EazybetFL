@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 
 type Promotion = {
   id: string;
@@ -25,7 +26,7 @@ export function PromotionRow({ promotion }: { promotion: Promotion }) {
     setActive(next);
     const { error } = await supabase.from("promotions").update({ active: next }).eq("id", promotion.id);
     if (error) {
-      toast.error("Could not update promotion", { description: error.message });
+      toast.error("Could not update promotion", { description: friendlyError(error) });
       setActive(!next);
       return;
     }

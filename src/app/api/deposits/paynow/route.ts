@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { paynowInitiate } from "@/lib/paynow/client";
+import { friendlyError } from "@/lib/friendly-error";
 import type { Database, Json } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,8 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (insertErr || !deposit) {
-    return NextResponse.json({ error: insertErr?.message ?? "Could not start deposit" }, { status: 500 });
+    if (insertErr) console.error("[deposits/paynow] insert failed:", insertErr.message);
+    return NextResponse.json({ error: friendlyError(insertErr, "Could not start deposit") }, { status: 500 });
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -57,8 +59,9 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
 
   if (result.status !== "Ok" || !result.browserurl) {
+    console.error("[deposits/paynow] Paynow rejected the request:", result.error);
     await admin.from("deposits").update({ status: "failed" }).eq("id", deposit.id);
-    return NextResponse.json({ error: result.error ?? "Paynow could not start this payment" }, { status: 502 });
+    return NextResponse.json({ error: "Paynow could not start this payment. Please try again shortly." }, { status: 502 });
   }
 
   await admin

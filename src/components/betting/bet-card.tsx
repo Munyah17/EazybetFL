@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { formatMoney, formatOdds } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 import type { BetRow } from "@/lib/data/bets";
+import { friendlyError } from "@/lib/friendly-error";
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   open: { label: "OPEN", className: "bg-boost/15 text-boost" },
@@ -49,7 +50,7 @@ export function BetCard({ bet }: { bet: BetRow }) {
     const { data, error } = await supabase.rpc("fn_cash_out", { p_bet_id: bet.id });
     setCashingOut(false);
     if (error) {
-      toast.error("Cash out failed", { description: error.message });
+      toast.error("Cash out failed", { description: friendlyError(error) });
       return;
     }
     const result = data as { cash_out_value: number };

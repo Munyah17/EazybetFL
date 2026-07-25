@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 
 export default function SignUpPage() {
   const supabase = createClient();
@@ -54,7 +55,7 @@ export default function SignUpPage() {
     setLoading(false);
 
     if (error) {
-      toast.error("Sign up failed", { description: error.message });
+      toast.error("Sign up failed", { description: friendlyError(error) });
       return;
     }
 

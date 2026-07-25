@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { formatMoney, formatOdds } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/types/database";
+import { friendlyError } from "@/lib/friendly-error";
 
 type SelectionStatus = Database["public"]["Enums"]["selection_status"];
 
@@ -55,7 +56,7 @@ export function AdminBetRow({ bet }: { bet: Bet }) {
   async function updateSelection(id: string, status: SelectionStatus) {
     const { error } = await supabase.rpc("fn_settle_selection", { p_selection_id: id, p_status: status });
     if (error) {
-      toast.error("Could not update selection", { description: error.message });
+      toast.error("Could not update selection", { description: friendlyError(error) });
       return;
     }
     setSelections((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
@@ -66,7 +67,7 @@ export function AdminBetRow({ bet }: { bet: Bet }) {
     const { data, error } = await supabase.rpc("fn_settle_bet", { p_bet_id: bet.id });
     setSettling(false);
     if (error) {
-      toast.error("Could not settle bet", { description: error.message });
+      toast.error("Could not settle bet", { description: friendlyError(error) });
       return;
     }
     const result = data as { status: string; payout: number };

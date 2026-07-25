@@ -13,6 +13,7 @@ import { useSession } from "@/lib/auth/session-provider";
 import { createClient } from "@/lib/supabase/client";
 import { formatMoney } from "@/lib/format";
 import type { Database } from "@/types/database";
+import { friendlyError } from "@/lib/friendly-error";
 
 type PaymentMethod = Database["public"]["Enums"]["payment_method"];
 
@@ -61,7 +62,7 @@ export default function WithdrawPage() {
     setLoading(false);
 
     if (error) {
-      toast.error("Withdrawal request failed", { description: error.message });
+      toast.error("Withdrawal request failed", { description: friendlyError(error) });
       return;
     }
 

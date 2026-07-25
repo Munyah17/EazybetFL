@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useSession } from "@/lib/auth/session-provider";
+import { friendlyError } from "@/lib/friendly-error";
 
 export default function PersonalInfoPage() {
   const supabase = createClient();
@@ -29,7 +30,7 @@ export default function PersonalInfoPage() {
       .eq("id", profile.id);
     setSaving(false);
     if (error) {
-      toast.error("Could not save changes", { description: error.message });
+      toast.error("Could not save changes", { description: friendlyError(error) });
       return;
     }
     toast.success("Profile updated");

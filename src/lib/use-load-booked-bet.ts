@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useBetslip, type BetType, type BetslipSelection } from "@/lib/betslip-store";
+import { friendlyError } from "@/lib/friendly-error";
 
 type RawSelection = {
   fixture_id: string;
@@ -16,12 +17,6 @@ type RawSelection = {
   commence_time?: string;
 };
 
-function mapError(message: string) {
-  if (message.includes("CODE_NOT_FOUND")) return "That code doesn't exist.";
-  if (message.includes("CODE_EXPIRED")) return "This code has expired.";
-  if (message.includes("CODE_CANCELLED")) return "This code was cancelled.";
-  return "Something went wrong. Please try again.";
-}
 
 /** Shared "load a booked bet by code" action -- used by the dedicated
  * /load-bet page and the inline field on the betslip itself. */
@@ -41,7 +36,7 @@ export function useLoadBookedBet() {
     setLoading(false);
 
     if (error) {
-      toast.error("Could not load bet", { description: mapError(error.message) });
+      toast.error("Could not load bet", { description: friendlyError(error) });
       return false;
     }
 

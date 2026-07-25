@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { useSession } from "@/lib/auth/session-provider";
+import { friendlyError } from "@/lib/friendly-error";
 
 type Admin = { id: string; full_name: string; email: string | null; role: string };
 
@@ -42,7 +43,7 @@ export function AdminRolesTable({ initialAdmins }: { initialAdmins: Admin[] }) {
     const { error } = await supabase.from("profiles").update({ role: "admin" }).eq("id", found.id);
     setSearching(false);
     if (error) {
-      toast.error("Could not promote user", { description: error.message });
+      toast.error("Could not promote user", { description: friendlyError(error) });
       return;
     }
 
@@ -58,7 +59,7 @@ export function AdminRolesTable({ initialAdmins }: { initialAdmins: Admin[] }) {
     }
     const { error } = await supabase.from("profiles").update({ role }).eq("id", admin.id);
     if (error) {
-      toast.error("Could not update role", { description: error.message });
+      toast.error("Could not update role", { description: friendlyError(error) });
       return;
     }
     if (role === "user") {

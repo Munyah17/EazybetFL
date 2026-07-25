@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/types/database";
+import { friendlyError } from "@/lib/friendly-error";
 
 type Banner = Database["public"]["Tables"]["banners"]["Row"];
 type BannerKind = Database["public"]["Enums"]["banner_kind"];
@@ -120,7 +121,7 @@ export function BannerManager({
         .single();
       setSaving(false);
       if (error) {
-        toast.error("Could not save banner", { description: error.message });
+        toast.error("Could not save banner", { description: friendlyError(error) });
         return;
       }
       setBanners((prev) =>
@@ -132,7 +133,7 @@ export function BannerManager({
       const { data, error } = await supabase.from("banners").insert(payload).select().single();
       setSaving(false);
       if (error) {
-        toast.error("Could not create banner", { description: error.message });
+        toast.error("Could not create banner", { description: friendlyError(error) });
         return;
       }
       setBanners((prev) => [...prev, data].sort((a, b) => a.display_order - b.display_order));
@@ -145,7 +146,7 @@ export function BannerManager({
   async function handleDelete(id: string) {
     const { error } = await supabase.from("banners").delete().eq("id", id);
     if (error) {
-      toast.error("Could not delete banner", { description: error.message });
+      toast.error("Could not delete banner", { description: friendlyError(error) });
       return;
     }
     setBanners((prev) => prev.filter((b) => b.id !== id));
@@ -155,7 +156,7 @@ export function BannerManager({
   async function toggleActive(b: Banner) {
     const { error } = await supabase.from("banners").update({ active: !b.active }).eq("id", b.id);
     if (error) {
-      toast.error("Could not update banner", { description: error.message });
+      toast.error("Could not update banner", { description: friendlyError(error) });
       return;
     }
     setBanners((prev) => prev.map((x) => (x.id === b.id ? { ...x, active: !x.active } : x)));

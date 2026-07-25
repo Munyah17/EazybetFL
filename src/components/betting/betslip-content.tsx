@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatMoney, formatOdds, formatKickoff } from "@/lib/format";
 import { useLoadBookedBet } from "@/lib/use-load-booked-bet";
 import { BookBetDialog } from "@/components/betting/book-bet-dialog";
+import { friendlyError } from "@/lib/friendly-error";
 import { cn } from "@/lib/utils";
 
 const STAKE_PRESETS = [1, 2, 5, 10, 20, 50];
@@ -133,7 +134,7 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
     setPlacing(false);
 
     if (error) {
-      toast.error("Could not place bet", { description: mapDbError(error.message) });
+      toast.error("Could not place bet", { description: friendlyError(error) });
       return;
     }
 
@@ -154,7 +155,7 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
     setBooking(false);
 
     if (error) {
-      toast.error("Could not book bet", { description: mapDbError(error.message) });
+      toast.error("Could not book bet", { description: friendlyError(error) });
       return;
     }
     const result = data as { bet_code: string };
@@ -429,10 +430,3 @@ function choose(n: number, k: number) {
   return Math.round(result);
 }
 
-function mapDbError(message: string) {
-  if (message.includes("INSUFFICIENT_FUNDS")) return "Your wallet balance is too low for this stake.";
-  if (message.includes("MARKET_SUSPENDED")) return "One of your selections was suspended. Remove it and try again.";
-  if (message.includes("FIXTURE_NOT_AVAILABLE")) return "One of your selections is no longer available.";
-  if (message.includes("NOT_AUTHENTICATED")) return "Please sign in first.";
-  return "Something went wrong. Please try again.";
-}

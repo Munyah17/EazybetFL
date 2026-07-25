@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@/types/database";
+import { friendlyError } from "@/lib/friendly-error";
 
 type Withdrawal = {
   id: string;
@@ -47,7 +48,7 @@ export function WithdrawalRow({ withdrawal }: { withdrawal: Withdrawal }) {
     const { error } = await supabase.rpc("fn_approve_withdrawal", { p_withdrawal_id: withdrawal.id });
     setLoading(null);
     if (error) {
-      toast.error("Could not approve", { description: error.message });
+      toast.error("Could not approve", { description: friendlyError(error) });
       return;
     }
     toast.success("Withdrawal approved");
@@ -68,7 +69,7 @@ export function WithdrawalRow({ withdrawal }: { withdrawal: Withdrawal }) {
     });
     setLoading(null);
     if (error) {
-      toast.error("Could not reject", { description: error.message });
+      toast.error("Could not reject", { description: friendlyError(error) });
       return;
     }
     toast.success("Withdrawal rejected and refunded");

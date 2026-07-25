@@ -5,6 +5,7 @@ import { ecocashCharge, normalizeMsisdn, isSuccessStatusMessage } from "@/lib/ec
 import { sendEmail } from "@/lib/email/send";
 import { depositCompletedEmail } from "@/lib/email/templates";
 import { formatMoney } from "@/lib/format";
+import { friendlyError } from "@/lib/friendly-error";
 import type { Json } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -56,7 +57,8 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (insertErr || !deposit) {
-    return NextResponse.json({ error: insertErr?.message ?? "Could not start deposit" }, { status: 500 });
+    if (insertErr) console.error("[deposits/ecocash] insert failed:", insertErr.message);
+    return NextResponse.json({ error: friendlyError(insertErr, "Could not start deposit") }, { status: 500 });
   }
 
   const admin = createAdminClient();
@@ -88,17 +90,19 @@ export async function POST(req: NextRequest) {
 
     await admin.rpc("fn_fail_deposit", { p_deposit_id: deposit.id });
     await admin.from("deposits").update({ status: "failed" }).eq("id", deposit.id);
+    console.error("[deposits/ecocash] EcoCash returned:", charge.statusMessage);
 
     return NextResponse.json(
       {
         status: "failed",
         depositId: deposit.id,
-        message: STATUS_MESSAGE_HINTS[charge.statusMessage] ?? charge.statusMessage,
+        message: STATUS_MESSAGE_HINTS[charge.statusMessage] ?? "The payment could not be completed. Please try again.",
       },
       { status: 402 }
     );
   } catch (e) {
+    console.error("[deposits/ecocash] unexpected error:", (e as Error).message);
     await admin.from("deposits").update({ status: "failed" }).eq("id", deposit.id);
-    return NextResponse.json({ error: (e as Error).message }, { status: 502 });
+    return NextResponse.json({ error: "The payment could not be completed. Please try again." }, { status: 502 });
   }
 }

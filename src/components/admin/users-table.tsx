@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/types/database";
+import { friendlyError } from "@/lib/friendly-error";
 
 type User = Pick<
   Database["public"]["Tables"]["profiles"]["Row"],
@@ -42,7 +43,7 @@ export function UsersTable({ users }: { users: User[] }) {
     const nextStatus = user.status === "active" ? "suspended" : "active";
     const { error } = await supabase.from("profiles").update({ status: nextStatus }).eq("id", user.id);
     if (error) {
-      toast.error("Could not update status", { description: error.message });
+      toast.error("Could not update status", { description: friendlyError(error) });
       return;
     }
     setRows((prev) => prev.map((u) => (u.id === user.id ? { ...u, status: nextStatus } : u)));
