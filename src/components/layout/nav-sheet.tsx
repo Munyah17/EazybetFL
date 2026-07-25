@@ -52,11 +52,13 @@ export function NavSheet() {
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-72 bg-sidebar p-0">
-        <SheetHeader className="flex-row items-center justify-between border-b border-border px-4 py-4">
+        {/* SheetContent already renders its own close (X) button pinned to
+         * top-3 right-3 -- nothing else can share that corner without
+         * overlapping it, so this header only holds the logo. */}
+        <SheetHeader className="border-b border-border px-4 py-4 pr-12">
           <SheetTitle>
             <Logo />
           </SheetTitle>
-          <ThemeToggle />
         </SheetHeader>
         <nav className="flex flex-col gap-1 p-3">
           {links.map((l) => (
@@ -72,6 +74,10 @@ export function NavSheet() {
               {l.label}
             </Link>
           ))}
+          <div className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/90">
+            <span>Appearance</span>
+            <ThemeToggle />
+          </div>
         </nav>
         <Separator />
         <div className="p-3">

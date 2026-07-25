@@ -2,9 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, User, Wallet, Bell, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Logo } from "@/components/layout/logo";
 import { NavSheet } from "@/components/layout/nav-sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -22,7 +29,7 @@ const DESKTOP_LINKS = [
 ];
 
 export function SiteHeader() {
-  const { profile, wallet } = useSession();
+  const { profile, wallet, signOut } = useSession();
   const pathname = usePathname();
 
   return (
@@ -79,13 +86,43 @@ export function SiteHeader() {
                 <Plus className="size-3.5" />
               </span>
             </Link>
-            <Link href="/account" className="lg:hidden" aria-label="My Account">
-              <Avatar className="size-8">
-                <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
-                  {initials(profile.full_name)}
-                </AvatarFallback>
-              </Avatar>
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="lg:hidden" aria-label="Account menu">
+                  <Avatar className="size-8">
+                    <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
+                      {initials(profile.full_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link href="/account">
+                    <User /> My Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/wallet">
+                    <Wallet /> Wallet
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/account/notifications">
+                    <Bell /> Notifications
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/account/personal">
+                    <Settings /> Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={signOut}>
+                  <LogOut /> Log Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         ) : (
           <div className="flex items-center gap-2">
