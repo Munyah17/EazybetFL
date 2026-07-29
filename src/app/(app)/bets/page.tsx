@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BetCard } from "@/components/betting/bet-card";
+import { LiveRefresher } from "@/components/betting/live-refresher";
 import { requireUser } from "@/lib/auth/require-user";
 import { getBets } from "@/lib/data/bets";
 
@@ -15,6 +16,10 @@ export default async function BetsPage() {
 
   return (
     <div className="flex flex-col">
+      {/* Open bets can settle or move their cash-out value at any time while
+       * their match is live -- keep this page current without a manual
+       * reload, same as the live listing/match pages. */}
+      {open.length > 0 && <LiveRefresher intervalMs={15000} />}
       <PageHeader title="My Bets" backHref="/" />
 
       <div className="p-3">

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { MarketCard } from "@/components/betting/market-card";
+import { LiveRefresher } from "@/components/betting/live-refresher";
 import { getFixtureById } from "@/lib/data/fixtures";
 import { ensureExtraMarkets } from "@/lib/data/enrich-fixture";
 import { formatKickoff } from "@/lib/format";
@@ -27,6 +28,7 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="flex flex-col">
+      {isLive && <LiveRefresher intervalMs={10000} />}
       <PageHeader title={fixture.competition?.title ?? "Match"} backHref="/sports" />
 
       <div className="flex flex-col gap-1 border-b border-border/60 px-4 py-4 text-center">

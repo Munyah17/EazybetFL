@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { SportsBar } from "@/components/betting/sports-bar";
 import { PaginatedLeagueSections } from "@/components/betting/paginated-league-sections";
+import { LiveRefresher } from "@/components/betting/live-refresher";
 import { getFixtures } from "@/lib/data/fixtures";
 import { getActiveSportGroups } from "@/lib/data/sport-groups";
 
@@ -11,9 +12,11 @@ export default async function SportsPage() {
     getActiveSportGroups(),
     getFixtures({ status: ["upcoming", "live"], limit: 100 }),
   ]);
+  const hasLive = fixtures.some((f) => f.status === "live");
 
   return (
     <div className="flex flex-col">
+      {hasLive && <LiveRefresher />}
       <PageHeader title="All Sports" backHref="/" />
       <div className="lg:hidden">
         <SportsBar groups={groups} />

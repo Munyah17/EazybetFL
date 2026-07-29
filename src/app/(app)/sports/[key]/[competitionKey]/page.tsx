@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { PaginatedLeagueSections } from "@/components/betting/paginated-league-sections";
+import { LiveRefresher } from "@/components/betting/live-refresher";
 import { getFixtures } from "@/lib/data/fixtures";
 import { getActiveSportGroups } from "@/lib/data/sport-groups";
 import { competitionCountry } from "@/lib/competition-country";
@@ -26,9 +27,11 @@ export default async function CompetitionPage({
 
   const title = fixtures[0].competition?.title ?? "Competition";
   const country = competitionCountry(competitionKey);
+  const hasLive = fixtures.some((f) => f.status === "live");
 
   return (
     <div className="flex flex-col">
+      {hasLive && <LiveRefresher />}
       <PageHeader title={title} backHref={`/sports/${key}`} />
       <div className="px-3 pt-3 pb-3 lg:px-5">
         <p className="mb-3 text-xs font-medium text-muted-foreground">{country}</p>

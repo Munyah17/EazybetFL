@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { PaginatedLeagueSections } from "@/components/betting/paginated-league-sections";
+import { LiveRefresher } from "@/components/betting/live-refresher";
 import { getFixtures } from "@/lib/data/fixtures";
 
 export const revalidate = 15;
@@ -9,6 +10,7 @@ export default async function LivePage() {
 
   return (
     <div className="flex flex-col">
+      {fixtures.length > 0 && <LiveRefresher />}
       <PageHeader title="Live" backHref="/" />
       <div className="px-3 pt-3 pb-3">
         <PaginatedLeagueSections fixtures={fixtures} />

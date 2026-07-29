@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { PaginatedLeagueSections } from "@/components/betting/paginated-league-sections";
+import { LiveRefresher } from "@/components/betting/live-refresher";
 import { getFixtures } from "@/lib/data/fixtures";
 import { getActiveSportGroups } from "@/lib/data/sport-groups";
 import { displayGroupName } from "@/lib/sport-display";
@@ -14,9 +15,11 @@ export default async function SportGroupPage({ params }: { params: Promise<{ key
   if (!group) notFound();
 
   const fixtures = await getFixtures({ status: ["upcoming", "live"], sportGroupKey: key, limit: 100 });
+  const hasLive = fixtures.some((f) => f.status === "live");
 
   return (
     <div className="flex flex-col">
+      {hasLive && <LiveRefresher />}
       <PageHeader title={displayGroupName(group.name)} backHref="/sports" />
       <div className="px-3 pt-3 pb-3">
         <PaginatedLeagueSections fixtures={fixtures} />
