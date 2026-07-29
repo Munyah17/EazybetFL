@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isSuccessStatusMessage } from "@/lib/ecocash/client";
+import {
+  ecocashLookup,
+  normalizeMsisdn,
+  isSuccessStatusMessage,
+  type EcoCashChargeResponse,
+} from "@/lib/ecocash/client";
 import { sendEmail } from "@/lib/email/send";
 import { depositCompletedEmail } from "@/lib/email/templates";
 import { formatMoney } from "@/lib/format";
+import type { Json } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +17,15 @@ export const dynamic = "force-dynamic";
  * notifyUrl callback for async production charge outcomes. The sandbox
  * resolves synchronously in the charge response, so this mostly matters
  * once real EcoCash traffic replaces sandbox credentials.
+ *
+ * EcoCash's notifyUrl carries no signature, and `clientCorrelator` is a
+ * plain column a user can read off their own `deposits` row via RLS -- so
+ * the inbound body cannot be trusted for the outcome (an attacker could
+ * otherwise POST a fabricated "Successful" here and get a free credit).
+ * Treat the callback only as a "check now" trigger and re-verify the real
+ * status directly against EcoCash's own lookup API before crediting
+ * anything, the same way the Paynow status route re-polls Paynow rather
+ * than trusting a caller-supplied status.
  */
 export async function POST(req: NextRequest) {
   const payload = await req.json().catch(() => null);
@@ -21,19 +36,28 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { data: deposit } = await admin
     .from("deposits")
-    .select("id, status, amount, profiles(email)")
+    .select("id, status, amount, phone_number, profiles(email)")
     .eq("client_correlator", payload.clientCorrelator)
     .maybeSingle();
 
   if (!deposit) return NextResponse.json({ error: "Unknown deposit" }, { status: 404 });
   if (deposit.status === "completed") return NextResponse.json({ ok: true });
+  if (!deposit.phone_number) return NextResponse.json({ error: "Deposit missing phone" }, { status: 400 });
+
+  let verified: EcoCashChargeResponse;
+  try {
+    verified = await ecocashLookup(normalizeMsisdn(deposit.phone_number), payload.clientCorrelator);
+  } catch (e) {
+    console.error("[webhooks/ecocash] verification lookup failed:", (e as Error).message);
+    return NextResponse.json({ error: "Could not verify transaction" }, { status: 502 });
+  }
 
   await admin
     .from("deposits")
-    .update({ provider_payload: payload })
+    .update({ provider_payload: verified as unknown as Json })
     .eq("id", deposit.id);
 
-  if (isSuccessStatusMessage(payload.statusMessage ?? "")) {
+  if (isSuccessStatusMessage(verified.statusMessage ?? "")) {
     await admin.rpc("fn_complete_deposit", { p_deposit_id: deposit.id });
     const email = deposit.profiles?.email;
     if (email) {
