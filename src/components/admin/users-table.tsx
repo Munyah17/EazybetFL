@@ -78,7 +78,7 @@ export function UsersTable({ users }: { users: User[] }) {
             <Badge className={cn("border-0 text-[10px] capitalize", STATUS_STYLE[u.status])}>
               {u.status}
             </Badge>
-            {u.role === "user" && (
+            {(u.role === "user" || u.role === "agent") && (
               <Button size="sm" variant="outline" onClick={() => toggleStatus(u)}>
                 {u.status === "active" ? "Suspend" : "Activate"}
               </Button>

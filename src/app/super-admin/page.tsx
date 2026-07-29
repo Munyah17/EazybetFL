@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, UserCheck, TrendingUp, DollarSign, Activity, Clock, ArrowDownCircle, ArrowUpCircle, Image as ImageIcon } from "lucide-react";
+import { Users, UserCheck, TrendingUp, DollarSign, Activity, Clock, ArrowDownCircle, ArrowUpCircle, Image as ImageIcon, Handshake } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { formatMoney } from "@/lib/format";
@@ -88,11 +88,17 @@ export default async function SuperAdminDashboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Link href="/super-admin/admins">
             <Card className="items-center gap-1.5 border-border/60 bg-card p-4 text-center hover:bg-accent">
               <Users className="size-5 text-primary" />
               <span className="text-xs font-medium">Manage Admins</span>
+            </Card>
+          </Link>
+          <Link href="/super-admin/agents">
+            <Card className="items-center gap-1.5 border-border/60 bg-card p-4 text-center hover:bg-accent">
+              <Handshake className="size-5 text-primary" />
+              <span className="text-xs font-medium">Manage Agents</span>
             </Card>
           </Link>
           <Link href="/admin/withdrawals">

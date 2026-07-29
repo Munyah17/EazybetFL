@@ -721,7 +721,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          assigned_agent_id: string | null
           avatar_url: string | null
+          commission_rate: number
           country: string | null
           created_at: string
           date_of_birth: string | null
@@ -737,7 +739,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_agent_id?: string | null
           avatar_url?: string | null
+          commission_rate?: number
           country?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -753,7 +757,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_agent_id?: string | null
           avatar_url?: string | null
+          commission_rate?: number
           country?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -769,6 +775,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_assigned_agent_id_fkey"
+            columns: ["assigned_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_referred_by_fkey"
             columns: ["referred_by"]
@@ -1110,6 +1123,14 @@ export type Database = {
         Returns: string
       }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      fn_agent_deposit_customer: {
+        Args: { p_amount: number; p_customer_id: string }
+        Returns: undefined
+      }
+      fn_agent_withdraw_customer: {
+        Args: { p_amount: number; p_customer_id: string }
+        Returns: undefined
+      }
       fn_approve_withdrawal: {
         Args: { p_withdrawal_id: string }
         Returns: undefined
@@ -1130,6 +1151,7 @@ export type Database = {
       }
       fn_expire_booked_bets: { Args: never; Returns: number }
       fn_fail_deposit: { Args: { p_deposit_id: string }; Returns: undefined }
+      fn_link_agent: { Args: { p_agent_code: string }; Returns: undefined }
       fn_load_booked_bet: { Args: { p_bet_code: string }; Returns: Json }
       fn_lookup_email_by_phone: { Args: { p_phone: string }; Returns: string }
       fn_place_bet: {
@@ -1191,6 +1213,7 @@ export type Database = {
       generate_bet_code: { Args: never; Returns: string }
       get_my_school_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      is_agent: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
@@ -1248,7 +1271,7 @@ export type Database = {
         | "odds_boost"
         | "cashback"
       selection_status: "pending" | "won" | "lost" | "void"
-      user_role: "user" | "admin" | "super_admin"
+      user_role: "user" | "admin" | "super_admin" | "agent"
       wallet_tx_status: "pending" | "completed" | "failed" | "reversed"
       wallet_tx_type:
         | "deposit"
@@ -1261,6 +1284,9 @@ export type Database = {
         | "cashout"
         | "adjustment"
         | "booking_release"
+        | "agent_deposit"
+        | "agent_withdrawal"
+        | "commission"
       withdrawal_status:
         | "pending"
         | "approved"
@@ -1453,7 +1479,7 @@ export const Constants = {
         "cashback",
       ],
       selection_status: ["pending", "won", "lost", "void"],
-      user_role: ["user", "admin", "super_admin"],
+      user_role: ["user", "admin", "super_admin", "agent"],
       wallet_tx_status: ["pending", "completed", "failed", "reversed"],
       wallet_tx_type: [
         "deposit",
@@ -1466,6 +1492,9 @@ export const Constants = {
         "cashout",
         "adjustment",
         "booking_release",
+        "agent_deposit",
+        "agent_withdrawal",
+        "commission",
       ],
       withdrawal_status: [
         "pending",

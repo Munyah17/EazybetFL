@@ -7,6 +7,8 @@
  * etc.) so nothing raw ever reaches a toast or inline error.
  */
 const KNOWN_ERRORS: Record<string, string> = {
+  AGENT_ALREADY_LINKED: "You're already linked to an agent.",
+  AGENT_CODE_NOT_FOUND: "We couldn't find an agent with that code.",
   ALREADY_REVIEWED: "That request has already been reviewed.",
   BET_ALREADY_SETTLED: "This bet has already been settled.",
   BET_NOT_CASHOUTABLE: "This bet can no longer be cashed out.",
@@ -24,6 +26,7 @@ const KNOWN_ERRORS: Record<string, string> = {
   MULTIPLE_REQUIRES_TWO_SELECTIONS: "A multiple bet needs at least two selections.",
   NOT_AUTHENTICATED: "Please sign in and try again.",
   NOT_AUTHORIZED: "You're not authorized to do that.",
+  NOT_YOUR_CUSTOMER: "This customer isn't assigned to you.",
   NO_SELECTIONS: "Add at least one selection first.",
   OUTCOME_NOT_FOUND: "That selection is no longer available.",
   SELECTIONS_NOT_FULLY_SETTLED: "Not all selections have been settled yet.",

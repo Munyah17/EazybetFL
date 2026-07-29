@@ -9,6 +9,7 @@ const PROTECTED_PREFIXES = [
   "/booked-bets",
   "/admin",
   "/super-admin",
+  "/agent",
 ];
 
 export async function updateSession(request: NextRequest) {

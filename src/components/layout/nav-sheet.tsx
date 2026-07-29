@@ -11,6 +11,7 @@ import {
   Gift,
   Dices,
   ShieldCheck,
+  Handshake,
   LogOut,
   LogIn,
   UserPlus,
@@ -28,6 +29,7 @@ export function NavSheet() {
   const [open, setOpen] = useState(false);
   const { profile, signOut } = useSession();
   const isAdmin = profile?.role === "admin" || profile?.role === "super_admin";
+  const isAgent = profile?.role === "agent";
 
   const links = [
     { href: "/", label: "Home", icon: Home },
@@ -41,6 +43,7 @@ export function NavSheet() {
           { href: "/booked-bets", label: "Booked Bets", icon: Bookmark },
         ]
       : []),
+    ...(isAgent ? [{ href: "/agent", label: "Agent Dashboard", icon: Handshake }] : []),
     ...(isAdmin ? [{ href: "/admin", label: "Admin Dashboard", icon: ShieldCheck }] : []),
   ];
 

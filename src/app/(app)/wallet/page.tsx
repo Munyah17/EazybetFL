@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth/require-user";
 import { getWalletSummary } from "@/lib/data/wallet";
 import { formatMoney } from "@/lib/format";
+import { LinkAgentForm } from "@/components/account/link-agent-form";
 
 const TX_LABELS: Record<string, string> = {
   deposit: "Deposit",
@@ -18,11 +19,18 @@ const TX_LABELS: Record<string, string> = {
   cashout: "Cash Out",
   adjustment: "Adjustment",
   booking_release: "Booking Release",
+  agent_deposit: "Agent Cash Deposit",
+  agent_withdrawal: "Agent Cash Withdrawal",
+  commission: "Agent Commission",
 };
 
 export default async function WalletPage() {
-  const { user } = await requireUser();
+  const { supabase, user, profile } = await requireUser();
   const { wallet, totalDeposits, totalWithdrawals, transactions } = await getWalletSummary(user.id);
+
+  const { data: linkedAgent } = profile.assigned_agent_id
+    ? await supabase.from("profiles").select("full_name").eq("id", profile.assigned_agent_id).single()
+    : { data: null };
 
   return (
     <div className="flex flex-col">
@@ -52,6 +60,18 @@ export default async function WalletPage() {
             <p className="text-lg font-bold">{formatMoney(totalWithdrawals)}</p>
           </Card>
         </div>
+
+        <Card className="border-border/60 bg-card p-4">
+          <p className="text-sm font-semibold">Cash Agent</p>
+          {linkedAgent ? (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your agent: <span className="font-medium text-foreground">{linkedAgent.full_name}</span> —
+              they can process cash deposits/withdrawals for you in person.
+            </p>
+          ) : (
+            <LinkAgentForm />
+          )}
+        </Card>
 
         <div>
           <div className="mb-2 flex items-center justify-between px-1">
