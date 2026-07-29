@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { oddsApi, DEFAULT_SYNC_SPORT_KEYS } from "@/lib/odds-api/client";
+import { oddsApi } from "@/lib/odds-api/client";
 import { requireCronSecret } from "@/lib/cron-auth";
 import { sendEmail } from "@/lib/email/send";
 import { betWonEmail } from "@/lib/email/templates";
@@ -22,7 +22,18 @@ export async function GET(req: NextRequest) {
 
   const supabase = createAdminClient();
   const keysParam = req.nextUrl.searchParams.get("keys");
-  const keys = keysParam ? keysParam.split(",") : DEFAULT_SYNC_SPORT_KEYS;
+
+  // Same default as /api/sync/odds: every competition currently marked
+  // `active`, not a hardcoded list -- otherwise bets on a competition that
+  // came into season after the list was last updated would never settle.
+  let keys: string[];
+  if (keysParam) {
+    keys = keysParam.split(",");
+  } else {
+    const { data, error } = await supabase.from("competitions").select("odds_api_key").eq("active", true);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    keys = (data ?? []).map((c) => c.odds_api_key);
+  }
 
   const summary: Record<string, unknown> = {};
   let settledBets = 0;

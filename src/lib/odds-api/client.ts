@@ -138,25 +138,6 @@ export const oddsApi = {
  * deliberately excluded rather than faked). */
 export const EXTRA_MARKET_KEYS = "btts,double_chance,draw_no_bet,alternate_spreads,alternate_totals";
 
-export const DEFAULT_SYNC_SPORT_KEYS = [
-  "soccer_epl",
-  "soccer_spain_la_liga",
-  "soccer_uefa_champs_league",
-  "soccer_italy_serie_a",
-  "soccer_germany_bundesliga",
-  "soccer_france_ligue_one",
-  "soccer_uefa_europa_league",
-  "basketball_nba",
-  "basketball_ncaab",
-  "icehockey_nhl",
-  "americanfootball_nfl",
-  "americanfootball_ncaaf",
-  "baseball_mlb",
-  "rugbyleague_nrl",
-  "boxing_boxing",
-  "mma_mixed_martial_arts",
-];
-
 const GROUP_ICON: Record<string, string> = {
   Soccer: "SoccerBall",
   Basketball: "CircleDot",

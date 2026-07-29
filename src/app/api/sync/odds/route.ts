@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { oddsApi, DEFAULT_SYNC_SPORT_KEYS, type OddsApiEvent } from "@/lib/odds-api/client";
+import { oddsApi, type OddsApiEvent } from "@/lib/odds-api/client";
 import { MARKET_NAMES } from "@/lib/odds-api/market-names";
 import { requireCronSecret } from "@/lib/cron-auth";
 
@@ -23,23 +23,33 @@ export async function GET(req: NextRequest) {
 
   const supabase = createAdminClient();
   const keysParam = req.nextUrl.searchParams.get("keys");
-  const keys = keysParam ? keysParam.split(",") : DEFAULT_SYNC_SPORT_KEYS;
 
-  const { data: competitions, error: compErr } = await supabase
-    .from("competitions")
-    .select("id, odds_api_key")
-    .in("odds_api_key", keys);
-  if (compErr) return NextResponse.json({ error: compErr.message }, { status: 500 });
+  // Default to every competition /api/sync/sports currently marks `active`
+  // (The Odds API's own in-season signal, refreshed daily) instead of a
+  // hardcoded key list -- a fixed list goes stale the moment a season
+  // starts or ends, which is exactly why this was only ever surfacing
+  // whichever 2-3 of a ~16-key list happened to be in season. `?keys=` is
+  // still honored for one-off/manual syncs of a specific competition.
+  let rows: { id: string; odds_api_key: string }[];
+  if (keysParam) {
+    const { data, error } = await supabase
+      .from("competitions")
+      .select("id, odds_api_key")
+      .in("odds_api_key", keysParam.split(","));
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    rows = data ?? [];
+  } else {
+    const { data, error } = await supabase.from("competitions").select("id, odds_api_key").eq("active", true);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    rows = data ?? [];
+  }
 
-  const compIdByKey = new Map(competitions!.map((c) => [c.odds_api_key, c.id]));
+  const compIdByKey = new Map(rows.map((c) => [c.odds_api_key, c.id]));
+  const keys = rows.map((c) => c.odds_api_key);
   const results: Record<string, number | string> = {};
 
   for (const key of keys) {
-    const competitionId = compIdByKey.get(key);
-    if (!competitionId) {
-      results[key] = "no matching competition (run sync-sports first)";
-      continue;
-    }
+    const competitionId = compIdByKey.get(key)!;
 
     let events: OddsApiEvent[];
     try {
