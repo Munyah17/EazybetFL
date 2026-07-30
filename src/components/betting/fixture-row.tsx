@@ -4,10 +4,16 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatKickoff, formatOdds } from "@/lib/format";
 import { useBetslip, type BetslipSelection } from "@/lib/betslip-store";
-import { h2hOutcomes, type FixtureWithOdds } from "@/lib/data/fixture-types";
+import { quickMarketOutcomes, type FixtureWithOdds, type QuickMarketKey } from "@/lib/data/fixture-types";
 
-export function FixtureRow({ fixture }: { fixture: FixtureWithOdds }) {
-  const odds = h2hOutcomes(fixture);
+export function FixtureRow({
+  fixture,
+  marketKey = "h2h",
+}: {
+  fixture: FixtureWithOdds;
+  marketKey?: QuickMarketKey;
+}) {
+  const odds = quickMarketOutcomes(fixture, marketKey);
   const selections = useBetslip((s) => s.selections);
   const addSelection = useBetslip((s) => s.addSelection);
   const isLive = fixture.status === "live";
@@ -35,36 +41,19 @@ export function FixtureRow({ fixture }: { fixture: FixtureWithOdds }) {
         </div>
       </Link>
 
-      {odds && (odds.home || odds.draw || odds.away) && (
-        <div className="grid shrink-0 grid-cols-3 gap-1.5">
-          <OddsButton
-            outcome={odds.home}
-            fixture={fixture}
-            marketId={odds.marketId}
-            marketName="Full Time Result"
-            selections={selections}
-            onPick={addSelection}
-          />
-          {odds.draw ? (
+      {odds && odds.outcomes.length > 0 && (
+        <div className="grid shrink-0 gap-1.5" style={{ gridTemplateColumns: `repeat(${odds.outcomes.length}, minmax(0, 1fr))` }}>
+          {odds.outcomes.map((outcome) => (
             <OddsButton
-              outcome={odds.draw}
+              key={outcome.id}
+              outcome={outcome}
               fixture={fixture}
               marketId={odds.marketId}
-              marketName="Full Time Result"
+              marketName={odds.marketName}
               selections={selections}
               onPick={addSelection}
             />
-          ) : (
-            <div />
-          )}
-          <OddsButton
-            outcome={odds.away}
-            fixture={fixture}
-            marketId={odds.marketId}
-            marketName="Full Time Result"
-            selections={selections}
-            onPick={addSelection}
-          />
+          ))}
         </div>
       )}
     </div>
@@ -79,14 +68,13 @@ function OddsButton({
   selections,
   onPick,
 }: {
-  outcome?: { id: string; name: string; price: number };
+  outcome: { id: string; name: string; label: string; price: number };
   fixture: FixtureWithOdds;
   marketId: string;
   marketName: string;
   selections: { outcomeId: string }[];
   onPick: (s: BetslipSelection) => void;
 }) {
-  if (!outcome) return <div />;
   const active = selections.some((s) => s.outcomeId === outcome.id);
 
   return (
@@ -103,9 +91,13 @@ function OddsButton({
           commenceTime: fixture.commence_time,
         })
       }
-      className={cn("odds-btn min-w-14", active && "odds-btn-active")}
+      className={cn(
+        "odds-btn flex min-w-16 flex-col items-center justify-center gap-0.5 leading-none",
+        active && "odds-btn-active"
+      )}
     >
-      {formatOdds(outcome.price)}
+      <span className="text-[9px] font-normal opacity-70">{outcome.label}</span>
+      <span>{formatOdds(outcome.price)}</span>
     </button>
   );
 }

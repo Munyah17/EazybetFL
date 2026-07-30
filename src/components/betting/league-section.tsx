@@ -1,8 +1,14 @@
 import { Card } from "@/components/ui/card";
 import { FixtureRow } from "@/components/betting/fixture-row";
-import type { FixtureWithOdds } from "@/lib/data/fixture-types";
+import type { FixtureWithOdds, QuickMarketKey } from "@/lib/data/fixture-types";
 
-export function LeagueSections({ fixtures }: { fixtures: FixtureWithOdds[] }) {
+export function LeagueSections({
+  fixtures,
+  marketKey = "h2h",
+}: {
+  fixtures: FixtureWithOdds[];
+  marketKey?: QuickMarketKey;
+}) {
   const byCompetition = new Map<string, { title: string; fixtures: FixtureWithOdds[] }>();
 
   for (const f of fixtures) {
@@ -30,7 +36,7 @@ export function LeagueSections({ fixtures }: { fixtures: FixtureWithOdds[] }) {
           </div>
           <Card className="gap-0 overflow-hidden border-border/60 bg-card p-0">
             {group.fixtures.map((f) => (
-              <FixtureRow key={f.id} fixture={f} />
+              <FixtureRow key={f.id} fixture={f} marketKey={marketKey} />
             ))}
           </Card>
         </div>

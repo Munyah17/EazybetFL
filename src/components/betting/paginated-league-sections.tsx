@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LeagueSections } from "@/components/betting/league-section";
-import type { FixtureWithOdds } from "@/lib/data/fixture-types";
+import type { FixtureWithOdds, QuickMarketKey } from "@/lib/data/fixture-types";
 
 const INITIAL_GROUPS = 4;
 const INCREMENT_GROUPS = 4;
@@ -13,7 +13,13 @@ const INCREMENT_GROUPS = 4;
  * whole list at once, so a short result set doesn't leave the footer
  * awkwardly hugging the header, and a long one doesn't force everything
  * into a single giant render. */
-export function PaginatedLeagueSections({ fixtures }: { fixtures: FixtureWithOdds[] }) {
+export function PaginatedLeagueSections({
+  fixtures,
+  marketKey = "h2h",
+}: {
+  fixtures: FixtureWithOdds[];
+  marketKey?: QuickMarketKey;
+}) {
   const groups = useMemo(() => {
     const byCompetition = new Map<string, FixtureWithOdds[]>();
     for (const f of fixtures) {
@@ -33,7 +39,7 @@ export function PaginatedLeagueSections({ fixtures }: { fixtures: FixtureWithOdd
 
   return (
     <div className="flex flex-col gap-4">
-      <LeagueSections fixtures={visibleFixtures} />
+      <LeagueSections fixtures={visibleFixtures} marketKey={marketKey} />
       {remainingGroups > 0 && (
         <Button
           variant="outline"
