@@ -34,7 +34,7 @@ export function MatchExplorer({
   liveFixtures: FixtureWithOdds[];
   upcomingFixtures: FixtureWithOdds[];
 }) {
-  const [tab, setTab] = useState<MatchTab>(liveFixtures.length ? "live" : "upcoming");
+  const [tab, setTab] = useState<MatchTab>("upcoming");
   // Football/soccer is the dominant sport for our audience -- default the
   // filter to it (when we actually carry it) instead of "All Sports".
   const [sport, setSport] = useState<string>(() => (groups.some((g) => g.key === "soccer") ? "soccer" : "all"));
@@ -74,7 +74,7 @@ export function MatchExplorer({
 
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as MatchTab)} className="gap-0">
-      <div className="border-b border-border px-3 py-2.5 lg:px-5">
+      <div className="flex justify-center border-b border-border px-3 py-2.5 lg:px-5">
         <TabsList className="w-full lg:w-auto">
           <TabsTrigger value="live" className="flex-1 lg:flex-none lg:px-6">
             Live {liveFixtures.length > 0 && `(${liveFixtures.length})`}
@@ -105,7 +105,7 @@ export function MatchExplorer({
         ))}
       </div>
 
-      <div className="no-scrollbar flex items-center gap-2 overflow-x-auto px-3 py-2.5 lg:px-5">
+      <div className="flex flex-wrap items-center justify-evenly gap-2 px-3 py-2.5 lg:px-5">
         <span className="flex shrink-0 items-center justify-center rounded-lg bg-primary/10 p-2 text-primary">
           <Zap className="size-4" />
         </span>
