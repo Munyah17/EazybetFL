@@ -75,20 +75,20 @@ export function MatchExplorer({
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as MatchTab)} className="gap-0">
       <div className="flex justify-center border-b border-border px-3 py-2.5 lg:px-5">
-        <TabsList className="w-full lg:w-auto">
-          <TabsTrigger value="live" className="flex-1 lg:flex-none lg:px-6">
+        <TabsList className="h-11 w-full max-w-2xl">
+          <TabsTrigger value="live" className="flex-1 px-6">
             Live {liveFixtures.length > 0 && `(${liveFixtures.length})`}
           </TabsTrigger>
-          <TabsTrigger value="top" className="flex-1 lg:flex-none lg:px-6">
+          <TabsTrigger value="top" className="flex-1 px-6">
             Top Events
           </TabsTrigger>
-          <TabsTrigger value="upcoming" className="flex-1 lg:flex-none lg:px-6">
+          <TabsTrigger value="upcoming" className="flex-1 px-6">
             Upcoming
           </TabsTrigger>
         </TabsList>
       </div>
 
-      <div className="no-scrollbar flex items-center gap-5 overflow-x-auto border-b border-border px-3 py-3 lg:px-5">
+      <div className="no-scrollbar flex items-center gap-5 overflow-x-auto border-b border-border px-3 py-3 lg:justify-evenly lg:gap-2 lg:px-5">
         <SportChip
           label="All Sports"
           active={sport === "all"}
