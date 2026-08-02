@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyError } from "@/lib/friendly-error";
+import { logAudit } from "@/lib/audit-log";
 
 type Agent = { id: string; full_name: string; email: string | null; role: string; commission_rate: number };
 
@@ -45,6 +46,7 @@ export function AgentsTable({ initialAgents }: { initialAgents: Agent[] }) {
       toast.error("Could not promote user", { description: friendlyError(error) });
       return;
     }
+    logAudit("role_change", "profile", found.id, { role: "user" }, { role: "agent" });
 
     setAgents((prev) => [...prev, { ...found, role: "agent" }]);
     setEmail("");
@@ -57,6 +59,7 @@ export function AgentsTable({ initialAgents }: { initialAgents: Agent[] }) {
       toast.error("Could not demote agent", { description: friendlyError(error) });
       return;
     }
+    logAudit("role_change", "profile", agent.id, { role: "agent" }, { role: "user" });
     setAgents((prev) => prev.filter((a) => a.id !== agent.id));
     toast.success("Agent demoted");
   }
@@ -73,6 +76,13 @@ export function AgentsTable({ initialAgents }: { initialAgents: Agent[] }) {
       toast.error("Could not update commission rate", { description: friendlyError(error) });
       return;
     }
+    logAudit(
+      "commission_rate_change",
+      "profile",
+      agent.id,
+      { commission_rate: agent.commission_rate },
+      { commission_rate: rate }
+    );
     setAgents((prev) => prev.map((a) => (a.id === agent.id ? { ...a, commission_rate: rate } : a)));
     setRateDrafts((prev) => {
       const next = { ...prev };

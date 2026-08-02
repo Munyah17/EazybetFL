@@ -13,6 +13,7 @@ import { formatMoney, formatOdds } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/types/database";
 import { friendlyError } from "@/lib/friendly-error";
+import { logAudit } from "@/lib/audit-log";
 
 type SelectionStatus = Database["public"]["Enums"]["selection_status"];
 
@@ -72,6 +73,7 @@ export function AdminBetRow({ bet }: { bet: Bet }) {
     }
     const result = data as { status: string; payout: number };
     toast.success(`Bet settled: ${result.status}`, { description: formatMoney(result.payout) });
+    logAudit("bet_settled", "bet", bet.id, undefined, result);
     router.refresh();
   }
 

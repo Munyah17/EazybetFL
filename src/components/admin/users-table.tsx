@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/types/database";
 import { friendlyError } from "@/lib/friendly-error";
+import { logAudit } from "@/lib/audit-log";
 
 type User = Pick<
   Database["public"]["Tables"]["profiles"]["Row"],
@@ -46,6 +47,7 @@ export function UsersTable({ users }: { users: User[] }) {
       toast.error("Could not update status", { description: friendlyError(error) });
       return;
     }
+    logAudit("status_change", "profile", user.id, { status: user.status }, { status: nextStatus });
     setRows((prev) => prev.map((u) => (u.id === user.id ? { ...u, status: nextStatus } : u)));
     toast.success(`User ${nextStatus}`);
   }

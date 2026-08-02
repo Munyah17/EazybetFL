@@ -1,5 +1,17 @@
 import Link from "next/link";
-import { Users, UserCheck, TrendingUp, DollarSign, Activity, Clock, ArrowDownCircle, ArrowUpCircle, Image as ImageIcon, Handshake } from "lucide-react";
+import {
+  Users,
+  UserCheck,
+  TrendingUp,
+  DollarSign,
+  Activity,
+  Clock,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Image as ImageIcon,
+  Handshake,
+  ScrollText,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { formatMoney } from "@/lib/format";
@@ -17,6 +29,7 @@ export default async function SuperAdminDashboardPage() {
     { count: activeBetsCount },
     { data: depositsToday },
     { data: withdrawalsToday },
+    { data: recentAuditLogs },
   ] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "active"),
@@ -25,6 +38,11 @@ export default async function SuperAdminDashboardPage() {
     supabase.from("bets").select("id", { count: "exact", head: true }).eq("status", "open"),
     supabase.from("deposits").select("amount").eq("status", "completed").gte("created_at", todayStart.toISOString()),
     supabase.from("withdrawals").select("amount").eq("status", "completed").gte("requested_at", todayStart.toISOString()),
+    supabase
+      .from("audit_logs")
+      .select("id, action, entity_type, created_at, profiles(full_name)")
+      .order("created_at", { ascending: false })
+      .limit(5),
   ]);
 
   const turnover = (allBets ?? []).reduce((sum, b) => sum + Number(b.stake), 0);
@@ -51,69 +69,88 @@ export default async function SuperAdminDashboardPage() {
   ];
 
   return (
-    <div className="flex min-h-svh flex-col bg-background">
-      <header className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h1 className="text-base font-bold">Super Admin Dashboard</h1>
-        <div className="flex items-center gap-3">
-          <Link href="/admin" className="text-sm font-medium text-primary">
-            Admin View
-          </Link>
-          <Link href="/" className="text-sm font-medium text-primary">
-            Back to Site
-          </Link>
-        </div>
-      </header>
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+      <h1 className="text-lg font-bold">Super Admin Dashboard</h1>
 
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-4">
+      <div className="grid grid-cols-2 gap-3">
+        {topStats.map((s) => (
+          <Card key={s.label} className="gap-1 border-border/60 bg-card p-4">
+            <s.icon className="size-5 text-primary" />
+            <p className="text-xl font-extrabold">{s.value}</p>
+            <p className="text-xs text-muted-foreground">{s.label}</p>
+          </Card>
+        ))}
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-sm font-semibold">System Stats</h2>
         <div className="grid grid-cols-2 gap-3">
-          {topStats.map((s) => (
+          {systemStats.map((s) => (
             <Card key={s.label} className="gap-1 border-border/60 bg-card p-4">
-              <s.icon className="size-5 text-primary" />
-              <p className="text-xl font-extrabold">{s.value}</p>
+              <s.icon className="size-5 text-boost" />
+              <p className="text-lg font-bold">{s.value}</p>
               <p className="text-xs text-muted-foreground">{s.label}</p>
             </Card>
           ))}
         </div>
+      </div>
 
-        <div>
-          <h2 className="mb-2 text-sm font-semibold">System Stats</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {systemStats.map((s) => (
-              <Card key={s.label} className="gap-1 border-border/60 bg-card p-4">
-                <s.icon className="size-5 text-boost" />
-                <p className="text-lg font-bold">{s.value}</p>
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-              </Card>
-            ))}
-          </div>
-        </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Link href="/super-admin/admins">
+          <Card className="items-center gap-1.5 border-border/60 bg-card p-4 text-center hover:bg-accent">
+            <Users className="size-5 text-primary" />
+            <span className="text-xs font-medium">Manage Admins</span>
+          </Card>
+        </Link>
+        <Link href="/super-admin/agents">
+          <Card className="items-center gap-1.5 border-border/60 bg-card p-4 text-center hover:bg-accent">
+            <Handshake className="size-5 text-primary" />
+            <span className="text-xs font-medium">Manage Agents</span>
+          </Card>
+        </Link>
+        <Link href="/admin/withdrawals">
+          <Card className="items-center gap-1.5 border-border/60 bg-card p-4 text-center hover:bg-accent">
+            <Clock className="size-5 text-primary" />
+            <span className="text-xs font-medium">Withdrawal Queue</span>
+          </Card>
+        </Link>
+        <Link href="/admin/banners">
+          <Card className="items-center gap-1.5 border-border/60 bg-card p-4 text-center hover:bg-accent">
+            <ImageIcon className="size-5 text-primary" />
+            <span className="text-xs font-medium">Banners</span>
+          </Card>
+        </Link>
+        <Link href="/super-admin/audit-log">
+          <Card className="items-center gap-1.5 border-border/60 bg-card p-4 text-center hover:bg-accent">
+            <ScrollText className="size-5 text-primary" />
+            <span className="text-xs font-medium">Audit Log</span>
+          </Card>
+        </Link>
+      </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Link href="/super-admin/admins">
-            <Card className="items-center gap-1.5 border-border/60 bg-card p-4 text-center hover:bg-accent">
-              <Users className="size-5 text-primary" />
-              <span className="text-xs font-medium">Manage Admins</span>
-            </Card>
-          </Link>
-          <Link href="/super-admin/agents">
-            <Card className="items-center gap-1.5 border-border/60 bg-card p-4 text-center hover:bg-accent">
-              <Handshake className="size-5 text-primary" />
-              <span className="text-xs font-medium">Manage Agents</span>
-            </Card>
-          </Link>
-          <Link href="/admin/withdrawals">
-            <Card className="items-center gap-1.5 border-border/60 bg-card p-4 text-center hover:bg-accent">
-              <Clock className="size-5 text-primary" />
-              <span className="text-xs font-medium">Withdrawal Queue</span>
-            </Card>
-          </Link>
-          <Link href="/admin/banners">
-            <Card className="items-center gap-1.5 border-border/60 bg-card p-4 text-center hover:bg-accent">
-              <ImageIcon className="size-5 text-primary" />
-              <span className="text-xs font-medium">Banners</span>
-            </Card>
-          </Link>
-        </div>
+      <div>
+        <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
+          <ScrollText className="size-4" /> Recent Privileged Actions
+        </h2>
+        <Card className="gap-0 overflow-hidden border-border/60 bg-card p-0">
+          {(recentAuditLogs ?? []).length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-muted-foreground">No privileged actions logged yet.</p>
+          ) : (
+            (recentAuditLogs ?? []).map((log) => (
+              <div key={log.id} className="flex items-center gap-3 border-b border-border/60 px-4 py-3 last:border-0">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium capitalize">{log.action.replace(/_/g, " ")}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {log.profiles?.full_name ?? "Unknown"} · {log.entity_type}
+                  </p>
+                </div>
+                <span className="shrink-0 text-[11px] text-muted-foreground">
+                  {new Date(log.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
+                </span>
+              </div>
+            ))
+          )}
+        </Card>
       </div>
     </div>
   );

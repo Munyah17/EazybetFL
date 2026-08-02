@@ -11,6 +11,7 @@ import { formatMoney } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@/types/database";
 import { friendlyError } from "@/lib/friendly-error";
+import { logAudit } from "@/lib/audit-log";
 
 type Withdrawal = {
   id: string;
@@ -52,6 +53,7 @@ export function WithdrawalRow({ withdrawal }: { withdrawal: Withdrawal }) {
       return;
     }
     toast.success("Withdrawal approved");
+    logAudit("withdrawal_approved", "withdrawal", withdrawal.id);
     fetch("/api/notify/withdrawal-decision", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -73,6 +75,7 @@ export function WithdrawalRow({ withdrawal }: { withdrawal: Withdrawal }) {
       return;
     }
     toast.success("Withdrawal rejected and refunded");
+    logAudit("withdrawal_rejected", "withdrawal", withdrawal.id, undefined, { reason });
     fetch("/api/notify/withdrawal-decision", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { useSession } from "@/lib/auth/session-provider";
 import { friendlyError } from "@/lib/friendly-error";
+import { logAudit } from "@/lib/audit-log";
 
 type Admin = { id: string; full_name: string; email: string | null; role: string };
 
@@ -46,6 +47,7 @@ export function AdminRolesTable({ initialAdmins }: { initialAdmins: Admin[] }) {
       toast.error("Could not promote user", { description: friendlyError(error) });
       return;
     }
+    logAudit("role_change", "profile", found.id, { role: "user" }, { role: "admin" });
 
     setAdmins((prev) => [...prev, { ...found, role: "admin" }]);
     setEmail("");
@@ -62,6 +64,7 @@ export function AdminRolesTable({ initialAdmins }: { initialAdmins: Admin[] }) {
       toast.error("Could not update role", { description: friendlyError(error) });
       return;
     }
+    logAudit("role_change", "profile", admin.id, { role: admin.role }, { role });
     if (role === "user") {
       setAdmins((prev) => prev.filter((a) => a.id !== admin.id));
     } else {
