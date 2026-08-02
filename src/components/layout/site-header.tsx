@@ -34,7 +34,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-30 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur lg:px-5">
-      <div className="flex items-center gap-2">
+      <div className="col-start-1 flex items-center gap-2">
         <div className="lg:hidden">
           <NavSheet />
         </div>
@@ -43,7 +43,7 @@ export function SiteHeader() {
         </Link>
       </div>
 
-      <nav className="hidden items-center gap-1 lg:flex">
+      <nav className="col-start-2 hidden items-center gap-1 lg:flex">
         {DESKTOP_LINKS.map((link) => {
           const active = !link.external && (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href));
           return (
@@ -65,7 +65,7 @@ export function SiteHeader() {
 
       {/* Desktop: theme toggle, My Account, balance/auth. Mobile: just an
        * avatar (or auth buttons) -- everything else lives in the drawer. */}
-      <div className="flex items-center justify-end gap-2">
+      <div className="col-start-3 flex items-center justify-end gap-2">
         <div className="hidden items-center gap-2 lg:flex">
           <ThemeToggle />
           {profile && (
