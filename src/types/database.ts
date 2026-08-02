@@ -328,93 +328,6 @@ export type Database = {
           },
         ]
       }
-      casino_games: {
-        Row: {
-          active: boolean
-          category: string | null
-          demo_available: boolean
-          display_order: number
-          game_key: string
-          id: string
-          provider: string
-          rtp: number | null
-          thumbnail_url: string | null
-          title: string
-        }
-        Insert: {
-          active?: boolean
-          category?: string | null
-          demo_available?: boolean
-          display_order?: number
-          game_key: string
-          id?: string
-          provider?: string
-          rtp?: number | null
-          thumbnail_url?: string | null
-          title: string
-        }
-        Update: {
-          active?: boolean
-          category?: string | null
-          demo_available?: boolean
-          display_order?: number
-          game_key?: string
-          id?: string
-          provider?: string
-          rtp?: number | null
-          thumbnail_url?: string | null
-          title?: string
-        }
-        Relationships: []
-      }
-      casino_sessions: {
-        Row: {
-          balance_snapshot: number | null
-          ended_at: string | null
-          game_id: string
-          id: string
-          mode: Database["public"]["Enums"]["casino_mode"]
-          session_token: string
-          started_at: string
-          user_id: string
-        }
-        Insert: {
-          balance_snapshot?: number | null
-          ended_at?: string | null
-          game_id: string
-          id?: string
-          mode: Database["public"]["Enums"]["casino_mode"]
-          session_token: string
-          started_at?: string
-          user_id: string
-        }
-        Update: {
-          balance_snapshot?: number | null
-          ended_at?: string | null
-          game_id?: string
-          id?: string
-          mode?: Database["public"]["Enums"]["casino_mode"]
-          session_token?: string
-          started_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "casino_sessions_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "casino_games"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "casino_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       competitions: {
         Row: {
           active: boolean
@@ -920,6 +833,57 @@ export type Database = {
           },
         ]
       }
+      vouchers: {
+        Row: {
+          amount: number
+          code: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          redeemed_at: string | null
+          redeemed_by: string | null
+          status: Database["public"]["Enums"]["voucher_status"]
+        }
+        Insert: {
+          amount: number
+          code: string
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          status?: Database["public"]["Enums"]["voucher_status"]
+        }
+        Update: {
+          amount?: number
+          code?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          status?: Database["public"]["Enums"]["voucher_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vouchers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_redeemed_by_fkey"
+            columns: ["redeemed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallet_transactions: {
         Row: {
           amount: number
@@ -1151,6 +1115,26 @@ export type Database = {
       }
       fn_expire_booked_bets: { Args: never; Returns: number }
       fn_fail_deposit: { Args: { p_deposit_id: string }; Returns: undefined }
+      fn_generate_vouchers: {
+        Args: { p_amount: number; p_count?: number; p_expires_at?: string }
+        Returns: {
+          amount: number
+          code: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          redeemed_at: string | null
+          redeemed_by: string | null
+          status: Database["public"]["Enums"]["voucher_status"]
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "vouchers"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       fn_link_agent: { Args: { p_agent_code: string }; Returns: undefined }
       fn_load_booked_bet: { Args: { p_bet_code: string }; Returns: Json }
       fn_lookup_email_by_phone: { Args: { p_phone: string }; Returns: string }
@@ -1164,6 +1148,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_redeem_voucher: { Args: { p_code: string }; Returns: Json }
       fn_reject_withdrawal: {
         Args: { p_reason: string; p_withdrawal_id: string }
         Returns: undefined
@@ -1184,6 +1169,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_void_voucher: { Args: { p_voucher_id: string }; Returns: undefined }
       fn_wallet_credit: {
         Args: {
           p_amount: number
@@ -1210,7 +1196,18 @@ export type Database = {
         }
         Returns: string
       }
+      fn_write_audit_log: {
+        Args: {
+          p_action: string
+          p_entity_id?: string
+          p_entity_type: string
+          p_new_values?: Json
+          p_old_values?: Json
+        }
+        Returns: undefined
+      }
       generate_bet_code: { Args: never; Returns: string }
+      generate_voucher_code: { Args: never; Returns: string }
       get_my_school_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_agent: { Args: never; Returns: boolean }
@@ -1232,7 +1229,6 @@ export type Database = {
       bet_type: "single" | "multiple" | "system"
       bonus_status: "active" | "completed" | "expired" | "forfeited"
       booked_bet_status: "active" | "loaded" | "expired" | "cancelled"
-      casino_mode: "demo" | "real"
       deposit_status:
         | "pending"
         | "processing"
@@ -1272,6 +1268,7 @@ export type Database = {
         | "cashback"
       selection_status: "pending" | "won" | "lost" | "void"
       user_role: "user" | "admin" | "super_admin" | "agent"
+      voucher_status: "active" | "redeemed" | "void"
       wallet_tx_status: "pending" | "completed" | "failed" | "reversed"
       wallet_tx_type:
         | "deposit"
@@ -1287,6 +1284,7 @@ export type Database = {
         | "agent_deposit"
         | "agent_withdrawal"
         | "commission"
+        | "voucher_redemption"
       withdrawal_status:
         | "pending"
         | "approved"
@@ -1435,7 +1433,6 @@ export const Constants = {
       bet_type: ["single", "multiple", "system"],
       bonus_status: ["active", "completed", "expired", "forfeited"],
       booked_bet_status: ["active", "loaded", "expired", "cancelled"],
-      casino_mode: ["demo", "real"],
       deposit_status: [
         "pending",
         "processing",
@@ -1480,6 +1477,7 @@ export const Constants = {
       ],
       selection_status: ["pending", "won", "lost", "void"],
       user_role: ["user", "admin", "super_admin", "agent"],
+      voucher_status: ["active", "redeemed", "void"],
       wallet_tx_status: ["pending", "completed", "failed", "reversed"],
       wallet_tx_type: [
         "deposit",
@@ -1495,6 +1493,7 @@ export const Constants = {
         "agent_deposit",
         "agent_withdrawal",
         "commission",
+        "voucher_redemption",
       ],
       withdrawal_status: [
         "pending",

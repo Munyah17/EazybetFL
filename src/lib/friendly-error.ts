@@ -20,6 +20,7 @@ const KNOWN_ERRORS: Record<string, string> = {
   FIXTURE_NOT_AVAILABLE: "That match is no longer available.",
   INSUFFICIENT_FUNDS: "Insufficient balance.",
   INVALID_AMOUNT: "Please enter a valid amount.",
+  INVALID_COUNT: "Please enter a valid quantity.",
   INVALID_STAKE: "Please enter a valid stake.",
   INVALID_SYSTEM_SIZE: "Please choose a valid system size.",
   MARKET_SUSPENDED: "That market is currently suspended.",
@@ -30,6 +31,10 @@ const KNOWN_ERRORS: Record<string, string> = {
   NO_SELECTIONS: "Add at least one selection first.",
   OUTCOME_NOT_FOUND: "That selection is no longer available.",
   SELECTIONS_NOT_FULLY_SETTLED: "Not all selections have been settled yet.",
+  VOUCHER_ALREADY_REDEEMED: "That voucher has already been redeemed.",
+  VOUCHER_EXPIRED: "That voucher has expired.",
+  VOUCHER_NOT_FOUND: "We couldn't find that voucher code.",
+  VOUCHER_VOID: "That voucher is no longer valid.",
   WALLET_NOT_FOUND: "We couldn't find your wallet. Please contact support.",
   WITHDRAWAL_NOT_FOUND: "We couldn't find that withdrawal.",
 };

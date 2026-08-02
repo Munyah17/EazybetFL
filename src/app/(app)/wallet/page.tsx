@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Ticket } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ const TX_LABELS: Record<string, string> = {
   agent_deposit: "Agent Cash Deposit",
   agent_withdrawal: "Agent Cash Withdrawal",
   commission: "Agent Commission",
+  voucher_redemption: "Voucher Redeemed",
 };
 
 export default async function WalletPage() {
@@ -48,6 +49,11 @@ export default async function WalletPage() {
               <Link href="/wallet/withdraw">Withdraw</Link>
             </Button>
           </div>
+          <Button asChild variant="ghost" className="mt-2 w-full">
+            <Link href="/wallet/redeem-voucher">
+              <Ticket /> Redeem Voucher
+            </Link>
+          </Button>
         </Card>
 
         <div className="grid grid-cols-2 gap-3">
