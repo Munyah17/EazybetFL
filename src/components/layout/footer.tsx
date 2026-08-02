@@ -72,6 +72,14 @@ export function Footer() {
         <p className="mt-1 text-xs text-muted-foreground">
           © {new Date().getFullYear()} EazyBet. All rights reserved.
         </p>
+        <a
+          href="https://globalspaceweb.co.zw"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1 block text-xs text-muted-foreground hover:text-primary"
+        >
+          Developed &amp; Powered By Global Space Web &middot; +263773909307
+        </a>
       </div>
     </footer>
   );
