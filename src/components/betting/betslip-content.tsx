@@ -93,7 +93,7 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
       return;
     }
     if (selections.length === 0) return;
-    if ((wallet?.balance ?? 0) < totalStakeRequired) {
+    if ((wallet?.balance ?? 0) + (wallet?.principal_balance ?? 0) < totalStakeRequired) {
       toast.error("Insufficient balance", { description: "Top up your wallet to place this bet." });
       return;
     }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus, User, Wallet, Bell, Settings, LogOut } from "lucide-react";
+import { Plus, User, Bell, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -81,7 +81,7 @@ export function SiteHeader() {
               href="/wallet"
               className="hidden items-center gap-2 rounded bg-secondary px-3 py-1.5 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-accent lg:flex"
             >
-              {formatMoney(wallet?.balance ?? 0)}
+              {formatMoney((wallet?.balance ?? 0) + (wallet?.principal_balance ?? 0))}
               <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <Plus className="size-3.5" />
               </span>
@@ -100,11 +100,6 @@ export function SiteHeader() {
                 <DropdownMenuItem asChild>
                   <Link href="/account">
                     <User /> My Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/wallet">
-                    <Wallet /> Wallet
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>

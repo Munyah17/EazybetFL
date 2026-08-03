@@ -634,6 +634,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_number: string
           assigned_agent_id: string | null
           avatar_url: string | null
           commission_rate: number
@@ -652,6 +653,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_number: string
           assigned_agent_id?: string | null
           avatar_url?: string | null
           commission_rate?: number
@@ -670,6 +672,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_number?: string
           assigned_agent_id?: string | null
           avatar_url?: string | null
           commission_rate?: number
@@ -889,6 +892,7 @@ export type Database = {
           amount: number
           balance_after: number
           balance_before: number
+          bucket: Database["public"]["Enums"]["wallet_bucket"]
           created_at: string
           created_by: string | null
           description: string | null
@@ -904,6 +908,7 @@ export type Database = {
           amount: number
           balance_after: number
           balance_before: number
+          bucket?: Database["public"]["Enums"]["wallet_bucket"]
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -919,6 +924,7 @@ export type Database = {
           amount?: number
           balance_after?: number
           balance_before?: number
+          bucket?: Database["public"]["Enums"]["wallet_bucket"]
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -962,6 +968,7 @@ export type Database = {
           currency: string
           id: string
           locked_balance: number
+          principal_balance: number
           updated_at: string
           user_id: string
         }
@@ -972,6 +979,7 @@ export type Database = {
           currency?: string
           id?: string
           locked_balance?: number
+          principal_balance?: number
           updated_at?: string
           user_id: string
         }
@@ -982,6 +990,7 @@ export type Database = {
           currency?: string
           id?: string
           locked_balance?: number
+          principal_balance?: number
           updated_at?: string
           user_id?: string
         }
@@ -1135,9 +1144,17 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      fn_gift_voucher: {
+        Args: { p_amount: number; p_recipient_account_number: string }
+        Returns: Json
+      }
       fn_link_agent: { Args: { p_agent_code: string }; Returns: undefined }
       fn_load_booked_bet: { Args: { p_bet_code: string }; Returns: Json }
       fn_lookup_email_by_phone: { Args: { p_phone: string }; Returns: string }
+      fn_lookup_user_by_account_number: {
+        Args: { p_account_number: string }
+        Returns: Json
+      }
       fn_place_bet: {
         Args: {
           p_bet_type: Database["public"]["Enums"]["bet_type"]
@@ -1159,7 +1176,7 @@ export type Database = {
           p_destination: Json
           p_method: Database["public"]["Enums"]["payment_method"]
         }
-        Returns: string
+        Returns: Json
       }
       fn_settle_bet: { Args: { p_bet_id: string }; Returns: Json }
       fn_settle_selection: {
@@ -1169,32 +1186,81 @@ export type Database = {
         }
         Returns: undefined
       }
-      fn_void_voucher: { Args: { p_voucher_id: string }; Returns: undefined }
-      fn_wallet_credit: {
+      fn_share_profit: {
         Args: {
           p_amount: number
-          p_created_by?: string
-          p_description: string
-          p_reference_id: string
-          p_reference_type: string
-          p_status?: Database["public"]["Enums"]["wallet_tx_status"]
-          p_type: Database["public"]["Enums"]["wallet_tx_type"]
-          p_user_id: string
+          p_note?: string
+          p_recipient_account_number: string
         }
-        Returns: string
+        Returns: Json
       }
-      fn_wallet_debit: {
+      fn_void_voucher: { Args: { p_voucher_id: string }; Returns: undefined }
+      fn_wallet_credit:
+        | {
+            Args: {
+              p_amount: number
+              p_created_by?: string
+              p_description: string
+              p_reference_id: string
+              p_reference_type: string
+              p_status?: Database["public"]["Enums"]["wallet_tx_status"]
+              p_type: Database["public"]["Enums"]["wallet_tx_type"]
+              p_user_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_bucket?: Database["public"]["Enums"]["wallet_bucket"]
+              p_created_by?: string
+              p_description: string
+              p_reference_id: string
+              p_reference_type: string
+              p_status?: Database["public"]["Enums"]["wallet_tx_status"]
+              p_type: Database["public"]["Enums"]["wallet_tx_type"]
+              p_user_id: string
+            }
+            Returns: string
+          }
+      fn_wallet_debit:
+        | {
+            Args: {
+              p_amount: number
+              p_created_by?: string
+              p_description: string
+              p_reference_id: string
+              p_reference_type: string
+              p_status?: Database["public"]["Enums"]["wallet_tx_status"]
+              p_type: Database["public"]["Enums"]["wallet_tx_type"]
+              p_user_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_bucket?: Database["public"]["Enums"]["wallet_bucket"]
+              p_created_by?: string
+              p_description: string
+              p_reference_id: string
+              p_reference_type: string
+              p_status?: Database["public"]["Enums"]["wallet_tx_status"]
+              p_type: Database["public"]["Enums"]["wallet_tx_type"]
+              p_user_id: string
+            }
+            Returns: string
+          }
+      fn_wallet_debit_spend: {
         Args: {
           p_amount: number
-          p_created_by?: string
           p_description: string
           p_reference_id: string
           p_reference_type: string
-          p_status?: Database["public"]["Enums"]["wallet_tx_status"]
           p_type: Database["public"]["Enums"]["wallet_tx_type"]
           p_user_id: string
         }
-        Returns: string
+        Returns: undefined
       }
       fn_write_audit_log: {
         Args: {
@@ -1206,6 +1272,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      generate_account_number: { Args: never; Returns: string }
       generate_bet_code: { Args: never; Returns: string }
       generate_voucher_code: { Args: never; Returns: string }
       get_my_school_id: { Args: never; Returns: string }
@@ -1269,6 +1336,7 @@ export type Database = {
       selection_status: "pending" | "won" | "lost" | "void"
       user_role: "user" | "admin" | "super_admin" | "agent"
       voucher_status: "active" | "redeemed" | "void"
+      wallet_bucket: "principal" | "balance"
       wallet_tx_status: "pending" | "completed" | "failed" | "reversed"
       wallet_tx_type:
         | "deposit"
@@ -1285,6 +1353,9 @@ export type Database = {
         | "agent_withdrawal"
         | "commission"
         | "voucher_redemption"
+        | "voucher_gift"
+        | "profit_share_sent"
+        | "profit_share_received"
       withdrawal_status:
         | "pending"
         | "approved"
@@ -1478,6 +1549,7 @@ export const Constants = {
       selection_status: ["pending", "won", "lost", "void"],
       user_role: ["user", "admin", "super_admin", "agent"],
       voucher_status: ["active", "redeemed", "void"],
+      wallet_bucket: ["principal", "balance"],
       wallet_tx_status: ["pending", "completed", "failed", "reversed"],
       wallet_tx_type: [
         "deposit",
@@ -1494,6 +1566,9 @@ export const Constants = {
         "agent_withdrawal",
         "commission",
         "voucher_redemption",
+        "voucher_gift",
+        "profit_share_sent",
+        "profit_share_received",
       ],
       withdrawal_status: [
         "pending",

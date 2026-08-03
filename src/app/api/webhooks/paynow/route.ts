@@ -29,7 +29,11 @@ export async function POST(req: NextRequest) {
   await admin.from("deposits").update({ provider_payload: fields }).eq("id", deposit.id);
 
   if (isPaynowPaid(fields.status ?? "")) {
-    await admin.rpc("fn_complete_deposit", { p_deposit_id: deposit.id });
+    const { error: completeErr } = await admin.rpc("fn_complete_deposit", { p_deposit_id: deposit.id });
+    if (completeErr) {
+      console.error(`fn_complete_deposit failed for deposit ${deposit.id}:`, completeErr.message);
+      return NextResponse.json({ error: "Failed to complete deposit" }, { status: 500 });
+    }
     const email = deposit.profiles?.email;
     if (email) {
       await sendEmail(

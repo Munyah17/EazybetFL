@@ -44,17 +44,13 @@ export default function WithdrawPage() {
       toast.error(`Minimum withdrawal is ${formatMoney(MIN_WITHDRAWAL)}`);
       return;
     }
-    if (amt > balance) {
-      toast.error("Insufficient balance");
-      return;
-    }
     if (!phone) {
       toast.error("Enter your phone number");
       return;
     }
 
     setLoading(true);
-    const { error } = await supabase.rpc("fn_request_withdrawal", {
+    const { data, error } = await supabase.rpc("fn_request_withdrawal", {
       p_amount: amt,
       p_method: method,
       p_destination: { phone },
@@ -63,6 +59,12 @@ export default function WithdrawPage() {
 
     if (error) {
       toast.error("Withdrawal request failed", { description: friendlyError(error) });
+      return;
+    }
+
+    const result = data as { blocked: boolean };
+    if (result.blocked) {
+      toast.error("Can't withdraw deposited funds", { description: friendlyError("WITHDRAWAL_BLOCKED_PRINCIPAL") });
       return;
     }
 

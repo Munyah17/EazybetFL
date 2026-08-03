@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   Gift,
   Bell,
+  Send,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
@@ -19,12 +20,17 @@ import { LogoutButton } from "@/components/account/logout-button";
 
 export default async function AccountPage() {
   const { supabase, user, profile } = await requireUser();
-  const { data: wallet } = await supabase.from("wallets").select("balance").eq("user_id", user.id).single();
+  const { data: wallet } = await supabase
+    .from("wallets")
+    .select("balance, principal_balance")
+    .eq("user_id", user.id)
+    .single();
 
   const links = [
     { href: "/bets", label: "My Bets", icon: Ticket },
     { href: "/wallet", label: "Transaction History", icon: History },
     { href: "/wallet", label: "Wallet", icon: Wallet },
+    { href: "/wallet/send", label: "Send to a Friend", icon: Send },
     { href: "/account/personal", label: "Personal Information", icon: UserCog },
     { href: "/account/security", label: "Security", icon: ShieldCheck },
     { href: "/account/referral", label: "Refer & Earn", icon: Gift },
@@ -45,13 +51,18 @@ export default async function AccountPage() {
           <div>
             <p className="text-base font-semibold">{profile.full_name}</p>
             <p className="text-sm text-muted-foreground">{profile.phone ?? profile.email}</p>
+            <p className="text-xs text-muted-foreground">
+              Account #: <span className="font-mono">{profile.account_number}</span>
+            </p>
           </div>
         </div>
 
         <Card className="flex-row items-center justify-between gap-3 border-border/60 bg-card p-4">
           <div>
             <p className="text-xs text-muted-foreground">Wallet Balance</p>
-            <p className="text-2xl font-extrabold text-primary">{formatMoney(wallet?.balance ?? 0)}</p>
+            <p className="text-2xl font-extrabold text-primary">
+              {formatMoney((wallet?.balance ?? 0) + (wallet?.principal_balance ?? 0))}
+            </p>
           </div>
           <Button asChild size="sm">
             <Link href="/wallet/deposit">Deposit</Link>

@@ -15,11 +15,13 @@ export default async function AgentCustomersPage() {
 
   const customerIds = (customers ?? []).map((c) => c.id);
   const { data: wallets } = customerIds.length
-    ? await supabase.from("wallets").select("user_id, balance").in("user_id", customerIds)
+    ? await supabase.from("wallets").select("user_id, balance, principal_balance").in("user_id", customerIds)
     : { data: [] };
-  const balanceByUserId = new Map((wallets ?? []).map((w) => [w.user_id, w.balance]));
+  const balanceByUserId = new Map(
+    (wallets ?? []).map((w) => [w.user_id, Number(w.balance) + Number(w.principal_balance)])
+  );
 
-  const rows = (customers ?? []).map((c) => ({ ...c, balance: Number(balanceByUserId.get(c.id) ?? 0) }));
+  const rows = (customers ?? []).map((c) => ({ ...c, balance: balanceByUserId.get(c.id) ?? 0 }));
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">

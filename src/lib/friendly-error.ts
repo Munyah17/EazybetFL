@@ -10,6 +10,7 @@ const KNOWN_ERRORS: Record<string, string> = {
   AGENT_ALREADY_LINKED: "You're already linked to an agent.",
   AGENT_CODE_NOT_FOUND: "We couldn't find an agent with that code.",
   ALREADY_REVIEWED: "That request has already been reviewed.",
+  CANNOT_TARGET_SELF: "You can't send this to yourself.",
   BET_ALREADY_SETTLED: "This bet has already been settled.",
   BET_NOT_CASHOUTABLE: "This bet can no longer be cashed out.",
   BET_NOT_FOUND: "We couldn't find that bet.",
@@ -30,12 +31,17 @@ const KNOWN_ERRORS: Record<string, string> = {
   NOT_YOUR_CUSTOMER: "This customer isn't assigned to you.",
   NO_SELECTIONS: "Add at least one selection first.",
   OUTCOME_NOT_FOUND: "That selection is no longer available.",
+  RECIPIENT_NOT_FOUND: "We couldn't find a user with that account number.",
   SELECTIONS_NOT_FULLY_SETTLED: "Not all selections have been settled yet.",
+  SHARE_BLOCKED_PRINCIPAL:
+    "You can only share winnings, not deposited funds. Buy them a voucher instead — it can be used to place bets.",
   VOUCHER_ALREADY_REDEEMED: "That voucher has already been redeemed.",
   VOUCHER_EXPIRED: "That voucher has expired.",
   VOUCHER_NOT_FOUND: "We couldn't find that voucher code.",
   VOUCHER_VOID: "That voucher is no longer valid.",
   WALLET_NOT_FOUND: "We couldn't find your wallet. Please contact support.",
+  WITHDRAWAL_BLOCKED_PRINCIPAL:
+    "You can only withdraw winnings, not deposited funds. Buy a loved one a voucher instead — it can be used to place bets.",
   WITHDRAWAL_NOT_FOUND: "We couldn't find that withdrawal.",
 };
 

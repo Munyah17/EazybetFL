@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowDownCircle, ArrowUpCircle, Ticket } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Ticket, Send } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,9 @@ const TX_LABELS: Record<string, string> = {
   agent_withdrawal: "Agent Cash Withdrawal",
   commission: "Agent Commission",
   voucher_redemption: "Voucher Redeemed",
+  voucher_gift: "Voucher Sent",
+  profit_share_sent: "Sent to a Friend",
+  profit_share_received: "Received from a Friend",
 };
 
 export default async function WalletPage() {
@@ -39,8 +42,18 @@ export default async function WalletPage() {
 
       <div className="flex flex-col gap-4 p-4">
         <Card className="items-center border-border/60 bg-card p-6 text-center">
-          <p className="text-xs text-muted-foreground">Balance</p>
-          <p className="text-3xl font-extrabold text-primary">{formatMoney(wallet?.balance ?? 0)}</p>
+          <p className="text-xs text-muted-foreground">Total Balance</p>
+          <p className="text-3xl font-extrabold text-primary">
+            {formatMoney((wallet?.balance ?? 0) + (wallet?.principal_balance ?? 0))}
+          </p>
+          <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+            <span>
+              Withdrawable <span className="font-semibold text-foreground">{formatMoney(wallet?.balance ?? 0)}</span>
+            </span>
+            <span>
+              Bet-only <span className="font-semibold text-foreground">{formatMoney(wallet?.principal_balance ?? 0)}</span>
+            </span>
+          </div>
           <div className="mt-3 grid w-full grid-cols-2 gap-2">
             <Button asChild>
               <Link href="/wallet/deposit">Deposit</Link>
@@ -49,11 +62,18 @@ export default async function WalletPage() {
               <Link href="/wallet/withdraw">Withdraw</Link>
             </Button>
           </div>
-          <Button asChild variant="ghost" className="mt-2 w-full">
-            <Link href="/wallet/redeem-voucher">
-              <Ticket /> Redeem Voucher
-            </Link>
-          </Button>
+          <div className="mt-2 grid w-full grid-cols-2 gap-2">
+            <Button asChild variant="ghost">
+              <Link href="/wallet/redeem-voucher">
+                <Ticket /> Redeem Voucher
+              </Link>
+            </Button>
+            <Button asChild variant="ghost">
+              <Link href="/wallet/send">
+                <Send /> Send to a Friend
+              </Link>
+            </Button>
+          </div>
         </Card>
 
         <div className="grid grid-cols-2 gap-3">
