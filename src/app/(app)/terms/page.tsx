@@ -38,7 +38,7 @@ export default function TermsPage() {
         <Section title="4. Bets & Settlement">
           Odds are correct at the time a bet is placed and may change
           afterwards without affecting bets already confirmed. Bets are
-          settled once an event's official result is confirmed. EazyBet
+          settled once an event&apos;s official result is confirmed. EazyBet
           reserves the right to void bets placed on markets affected by an
           error, including obviously incorrect odds.
         </Section>
