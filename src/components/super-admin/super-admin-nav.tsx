@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Handshake, ScrollText } from "lucide-react";
+import { LayoutDashboard, Users, Handshake, ScrollText, Vault } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function SuperAdminNav() {
@@ -12,6 +12,7 @@ export function SuperAdminNav() {
     { href: "/super-admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/super-admin/admins", label: "Admins", icon: Users },
     { href: "/super-admin/agents", label: "Agents", icon: Handshake },
+    { href: "/super-admin/escrow", label: "Escrow", icon: Vault },
     { href: "/super-admin/audit-log", label: "Audit Log", icon: ScrollText },
   ];
 

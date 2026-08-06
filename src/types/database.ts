@@ -506,6 +506,69 @@ export type Database = {
           },
         ]
       }
+      house_ledger: {
+        Row: {
+          escrow_balance: number
+          house_balance: number
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          escrow_balance?: number
+          house_balance?: number
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          escrow_balance?: number
+          house_balance?: number
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      house_ledger_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          escrow_balance_after: number
+          escrow_balance_before: number
+          house_balance_after: number
+          house_balance_before: number
+          id: string
+          reference_id: string | null
+          reference_type: string | null
+          type: Database["public"]["Enums"]["house_ledger_tx_type"]
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          escrow_balance_after: number
+          escrow_balance_before: number
+          house_balance_after: number
+          house_balance_before: number
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          type: Database["public"]["Enums"]["house_ledger_tx_type"]
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          escrow_balance_after?: number
+          escrow_balance_before?: number
+          house_balance_after?: number
+          house_balance_before?: number
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          type?: Database["public"]["Enums"]["house_ledger_tx_type"]
+        }
+        Relationships: []
+      }
       markets: {
         Row: {
           created_at: string
@@ -1148,6 +1211,25 @@ export type Database = {
         Args: { p_amount: number; p_recipient_account_number: string }
         Returns: Json
       }
+      fn_house_escrow_stake: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_reference_id: string
+          p_reference_type: string
+        }
+        Returns: undefined
+      }
+      fn_house_release_escrow: {
+        Args: {
+          p_description: string
+          p_reference_id: string
+          p_reference_type: string
+          p_stake: number
+          p_user_payout: number
+        }
+        Returns: undefined
+      }
       fn_link_agent: { Args: { p_agent_code: string }; Returns: undefined }
       fn_load_booked_bet: { Args: { p_bet_code: string }; Returns: Json }
       fn_lookup_email_by_phone: { Args: { p_phone: string }; Returns: string }
@@ -1195,62 +1277,34 @@ export type Database = {
         Returns: Json
       }
       fn_void_voucher: { Args: { p_voucher_id: string }; Returns: undefined }
-      fn_wallet_credit:
-        | {
-            Args: {
-              p_amount: number
-              p_created_by?: string
-              p_description: string
-              p_reference_id: string
-              p_reference_type: string
-              p_status?: Database["public"]["Enums"]["wallet_tx_status"]
-              p_type: Database["public"]["Enums"]["wallet_tx_type"]
-              p_user_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_amount: number
-              p_bucket?: Database["public"]["Enums"]["wallet_bucket"]
-              p_created_by?: string
-              p_description: string
-              p_reference_id: string
-              p_reference_type: string
-              p_status?: Database["public"]["Enums"]["wallet_tx_status"]
-              p_type: Database["public"]["Enums"]["wallet_tx_type"]
-              p_user_id: string
-            }
-            Returns: string
-          }
-      fn_wallet_debit:
-        | {
-            Args: {
-              p_amount: number
-              p_created_by?: string
-              p_description: string
-              p_reference_id: string
-              p_reference_type: string
-              p_status?: Database["public"]["Enums"]["wallet_tx_status"]
-              p_type: Database["public"]["Enums"]["wallet_tx_type"]
-              p_user_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_amount: number
-              p_bucket?: Database["public"]["Enums"]["wallet_bucket"]
-              p_created_by?: string
-              p_description: string
-              p_reference_id: string
-              p_reference_type: string
-              p_status?: Database["public"]["Enums"]["wallet_tx_status"]
-              p_type: Database["public"]["Enums"]["wallet_tx_type"]
-              p_user_id: string
-            }
-            Returns: string
-          }
+      fn_wallet_credit: {
+        Args: {
+          p_amount: number
+          p_bucket?: Database["public"]["Enums"]["wallet_bucket"]
+          p_created_by?: string
+          p_description: string
+          p_reference_id: string
+          p_reference_type: string
+          p_status?: Database["public"]["Enums"]["wallet_tx_status"]
+          p_type: Database["public"]["Enums"]["wallet_tx_type"]
+          p_user_id: string
+        }
+        Returns: string
+      }
+      fn_wallet_debit: {
+        Args: {
+          p_amount: number
+          p_bucket?: Database["public"]["Enums"]["wallet_bucket"]
+          p_created_by?: string
+          p_description: string
+          p_reference_id: string
+          p_reference_type: string
+          p_status?: Database["public"]["Enums"]["wallet_tx_status"]
+          p_type: Database["public"]["Enums"]["wallet_tx_type"]
+          p_user_id: string
+        }
+        Returns: string
+      }
       fn_wallet_debit_spend: {
         Args: {
           p_amount: number
@@ -1308,6 +1362,11 @@ export type Database = {
         | "finished"
         | "cancelled"
         | "postponed"
+      house_ledger_tx_type:
+        | "stake_escrowed"
+        | "stake_lost_to_house"
+        | "payout_funded_by_house"
+        | "stake_refunded_from_escrow"
       market_status: "open" | "suspended" | "closed"
       notification_type:
         | "bet_won"
@@ -1517,6 +1576,12 @@ export const Constants = {
         "finished",
         "cancelled",
         "postponed",
+      ],
+      house_ledger_tx_type: [
+        "stake_escrowed",
+        "stake_lost_to_house",
+        "payout_funded_by_house",
+        "stake_refunded_from_escrow",
       ],
       market_status: ["open", "suspended", "closed"],
       notification_type: [
