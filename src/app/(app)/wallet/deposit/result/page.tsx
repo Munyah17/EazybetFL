@@ -7,6 +7,7 @@ import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth/session-provider";
+import { createClient } from "@/lib/supabase/client";
 
 export default function DepositResultPage() {
   return (
@@ -18,20 +19,15 @@ export default function DepositResultPage() {
 
 function ResultBody() {
   const searchParams = useSearchParams();
-  const depositId = searchParams.get("depositId");
+  const urlDepositId = searchParams.get("depositId");
   const { refreshWallet } = useSession();
   const [status, setStatus] = useState<"checking" | "completed" | "failed" | "pending">("checking");
 
   useEffect(() => {
     // Polls an external system (Paynow, via our own API) for payment
     // status -- exactly what effects are for, not a plain state mirror.
-    if (!depositId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStatus("failed");
-      return;
-    }
     let attempts = 0;
-    const check = async () => {
+    const check = async (depositId: string) => {
       attempts++;
       const res = await fetch(`/api/deposits/paynow/${depositId}/status`);
       const data = await res.json();
@@ -41,14 +37,46 @@ function ResultBody() {
       } else if (data.status === "failed") {
         setStatus("failed");
       } else if (attempts < 8) {
-        setTimeout(check, 2500);
+        setTimeout(() => check(depositId), 2500);
       } else {
         setStatus("pending");
       }
     };
-    check();
+
+    // depositId can go missing from the URL if the session dropped mid
+    // checkout and the sign-in round trip lost it -- rather than assume
+    // "failed" (which would misreport a payment that actually succeeded),
+    // fall back to the user's own most recent processing Paynow deposit.
+    (async () => {
+      if (urlDepositId) {
+        check(urlDepositId);
+        return;
+      }
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setStatus("failed");
+        return;
+      }
+      const { data: recent } = await supabase
+        .from("deposits")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("provider", "paynow")
+        .eq("status", "processing")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (recent) {
+        check(recent.id);
+      } else {
+        setStatus("failed");
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [depositId]);
+  }, [urlDepositId]);
 
   return (
     <div className="flex flex-col">

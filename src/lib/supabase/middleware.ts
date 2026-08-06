@@ -42,9 +42,15 @@ export async function updateSession(request: NextRequest) {
   const isProtected = PROTECTED_PREFIXES.some((p) => path.startsWith(p));
 
   if (!user && isProtected) {
+    // Preserve the full path *and query string* (e.g. ?depositId=... on the
+    // Paynow return URL) -- using just .pathname here silently dropped it,
+    // so re-authenticating after a session drop mid-checkout landed back on
+    // the result page with no depositId, which that page treats as an
+    // immediate "failed" regardless of what actually happened.
+    const nextPath = request.nextUrl.pathname + request.nextUrl.search;
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
-    url.searchParams.set("next", path);
+    url.searchParams.set("next", nextPath);
     return NextResponse.redirect(url);
   }
 
