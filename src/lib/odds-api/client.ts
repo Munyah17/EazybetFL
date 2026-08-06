@@ -21,10 +21,14 @@ if (API_KEYS.length === 0) {
  * still-exhausted key before it re-advances -- cheap and self-healing. */
 let activeKeyIndex = 0;
 
-function isQuotaExceeded(status: number, body: string) {
-  if (status !== 401) return false;
-  const lower = body.toLowerCase();
-  return lower.includes("quota") || lower.includes("usage credit");
+/** Any 401 means *this* key doesn't work right now -- quota exhausted,
+ * revoked, expired, whatever the reason, the correct response is the same:
+ * try the next key rather than failing the whole sync outright. Previously
+ * this only matched quota-specific wording, so a merely-invalid/revoked key
+ * (a different 401 message) skipped rotation and took down sync entirely
+ * even with working fallback keys configured. */
+function isKeyRejected(status: number) {
+  return status === 401;
 }
 
 export type OddsApiSport = {
@@ -89,9 +93,9 @@ async function get<T>(path: string, params: Record<string, string> = {}): Promis
     if (res.ok) return res.json();
 
     const body = await res.text();
-    if (isQuotaExceeded(res.status, body) && activeKeyIndex < API_KEYS.length - 1) {
+    if (isKeyRejected(res.status) && activeKeyIndex < API_KEYS.length - 1) {
       activeKeyIndex++;
-      lastError = `key ${activeKeyIndex} exhausted: ${res.status} ${body}`;
+      lastError = `key ${activeKeyIndex} rejected: ${res.status} ${body}`;
       continue;
     }
 
