@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { oddsApi, iconForGroup, slugify } from "@/lib/odds-api/client";
+import { oddsApi, iconForGroup, slugify, groupPriority, competitionPriority } from "@/lib/odds-api/client";
 import { requireCronSecret } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     key: g.key,
     name: g.name,
     icon: g.icon,
-    display_order: i,
+    display_order: groupPriority(g.name) * 1000 + i,
     active: true,
   }));
 
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
       odds_api_key: s.key,
       title: s.title,
       active: s.active,
-      display_order: i,
+      display_order: competitionPriority(s.title) * 1000 + i,
     }));
 
   const { error: compUpsertErr } = await supabase

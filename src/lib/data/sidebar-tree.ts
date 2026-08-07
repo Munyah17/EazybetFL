@@ -1,6 +1,5 @@
 import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
-import { displayGroupName } from "@/lib/sport-display";
 import { competitionCountry } from "@/lib/competition-country";
 
 export type CompetitionNode = {
@@ -22,6 +21,7 @@ export type SportGroupNode = {
   key: string;
   name: string;
   icon: string | null;
+  display_order: number;
   fixtureCount: number;
   countries: CountryNode[];
 };
@@ -45,7 +45,7 @@ export const getSidebarTree = unstable_cache(
   async (): Promise<SportGroupNode[]> => {
     const supabase = createPublicClient();
     const { data, error } = await supabase.from("sport_groups").select(
-      `id, key, name, icon,
+      `id, key, name, icon, display_order,
        competitions!inner (
          id, odds_api_key, title,
          fixtures!inner ( id )
@@ -85,18 +85,18 @@ export const getSidebarTree = unstable_cache(
         key: row.key,
         name: row.name,
         icon: row.icon,
+        display_order: row.display_order,
         fixtureCount: countries.reduce((sum, c) => sum + c.fixtureCount, 0),
         countries,
       };
     });
 
+    // display_order reflects global/African viewership and betting volume
+    // (see groupPriority in odds-api/client.ts) -- football leads, then
+    // the rest in roughly that order, not alphabetically.
     return groups
       .filter((g) => g.countries.length > 0)
-      .sort((a, b) => {
-        if (a.key === "soccer") return -1;
-        if (b.key === "soccer") return 1;
-        return displayGroupName(a.name).localeCompare(displayGroupName(b.name));
-      });
+      .sort((a, b) => a.display_order - b.display_order);
   },
   ["sidebar-tree"],
   { revalidate: 30, tags: ["sidebar-tree"] }

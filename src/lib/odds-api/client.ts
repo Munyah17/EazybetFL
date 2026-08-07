@@ -162,6 +162,57 @@ export function iconForGroup(group: string) {
   return GROUP_ICON[group] ?? "Trophy";
 }
 
+/** Lower = shown first. Reflects global/African viewership and betting
+ * volume, not The Odds API's (effectively alphabetical) group order --
+ * which is why "American Football" was outranking "Soccer" before this
+ * existed. Soft priority, not a filter: anything not listed just sorts
+ * after everything that is. */
+const SPORT_GROUP_PRIORITY: Record<string, number> = {
+  Soccer: 0,
+  Basketball: 1,
+  Tennis: 2,
+  Cricket: 3,
+  "Rugby Union": 4,
+  "Rugby League": 5,
+  Boxing: 6,
+  "Mixed Martial Arts": 7,
+  Golf: 8,
+  "Ice Hockey": 9,
+  Handball: 10,
+  "American Football": 11,
+  Baseball: 12,
+  "Aussie Rules": 13,
+  Lacrosse: 14,
+};
+
+export function groupPriority(group: string) {
+  return SPORT_GROUP_PRIORITY[group] ?? 20;
+}
+
+/** Same idea, within soccer specifically -- the "big" European leagues
+ * (and the two most globally-watched club/international competitions)
+ * ahead of the long tail of domestic second divisions and minor leagues. */
+const TOP_COMPETITION_PRIORITY: Record<string, number> = {
+  EPL: 0,
+  "UEFA Champions League": 1,
+  "La Liga - Spain": 2,
+  "Serie A - Italy": 3,
+  "Bundesliga - Germany": 4,
+  "Ligue 1 - France": 5,
+  "Dutch Eredivisie": 6,
+  "Primeira Liga - Portugal": 7,
+  "UEFA Europa League": 8,
+  "UEFA Nations League": 9,
+  "FIFA World Cup": 10,
+  "UEFA Euro": 11,
+  "Copa América": 12,
+  "Copa Libertadores": 13,
+};
+
+export function competitionPriority(title: string) {
+  return TOP_COMPETITION_PRIORITY[title] ?? 50;
+}
+
 export function slugify(value: string) {
   return value
     .toLowerCase()

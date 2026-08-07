@@ -1,17 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
-import { displayGroupName } from "@/lib/sport-display";
 
 export type SportGroup = { id: string; key: string; name: string; icon: string | null };
 export type SportGroupWithCount = SportGroup & { fixtureCount: number };
 
-/** Football always leads (it's the dominant sport for our audience),
- * everything else follows alphabetically by display name. */
-function sortGroups<T extends { key: string; name: string }>(groups: T[]): T[] {
-  return [...groups].sort((a, b) => {
-    if (a.key === "soccer") return -1;
-    if (b.key === "soccer") return 1;
-    return displayGroupName(a.name).localeCompare(displayGroupName(b.name));
-  });
+/** display_order reflects global/African viewership and betting volume
+ * (see groupPriority in odds-api/client.ts) -- football leads, then the
+ * rest in roughly that order, not alphabetically. */
+function sortGroups<T extends { display_order: number; name: string }>(groups: T[]): T[] {
+  return [...groups].sort((a, b) => a.display_order - b.display_order);
 }
 
 /**
@@ -29,7 +25,7 @@ export async function getActiveSportGroupsWithCounts(): Promise<SportGroupWithCo
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("sport_groups")
-    .select("id, key, name, icon, competitions!inner( fixtures!inner( id ) )");
+    .select("id, key, name, icon, display_order, competitions!inner( fixtures!inner( id ) )");
 
   if (error) throw new Error(error.message);
 
@@ -38,7 +34,7 @@ export async function getActiveSportGroupsWithCounts(): Promise<SportGroupWithCo
       (sum, c) => sum + (c.fixtures?.length ?? 0),
       0
     );
-    return { id: row.id, key: row.key, name: row.name, icon: row.icon, fixtureCount };
+    return { id: row.id, key: row.key, name: row.name, icon: row.icon, display_order: row.display_order, fixtureCount };
   });
 
   return sortGroups(groups);
