@@ -58,10 +58,10 @@ export default function SendMoneyPage() {
           <div className="flex gap-2">
             <Input
               id="account-number"
-              placeholder="e.g. 4821093756"
+              placeholder="e.g. K4821"
               value={accountNumber}
               onChange={(e) => {
-                setAccountNumber(e.target.value);
+                setAccountNumber(e.target.value.toUpperCase());
                 setRecipient(null);
               }}
               className="font-mono tracking-wider"
