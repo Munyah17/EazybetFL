@@ -2,13 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
 
+// /admin and /super-admin are deliberately excluded -- their layouts
+// self-guard and show a portal-specific login screen instead of bouncing
+// unauthenticated visitors to the general /login page.
 const PROTECTED_PREFIXES = [
   "/account",
   "/wallet",
   "/bets",
   "/booked-bets",
-  "/admin",
-  "/super-admin",
   "/agent",
 ];
 
@@ -49,7 +50,7 @@ export async function updateSession(request: NextRequest) {
     // immediate "failed" regardless of what actually happened.
     const nextPath = request.nextUrl.pathname + request.nextUrl.search;
     const url = request.nextUrl.clone();
-    url.pathname = "/sign-in";
+    url.pathname = "/login";
     url.searchParams.set("next", nextPath);
     return NextResponse.redirect(url);
   }

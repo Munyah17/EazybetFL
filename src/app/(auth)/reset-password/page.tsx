@@ -56,7 +56,7 @@ export default function ResetPasswordPage() {
 
     toast.success("Password updated", { description: "Please sign in with your new password." });
     await supabase.auth.signOut();
-    router.push("/sign-in");
+    router.push("/login");
   }
 
   if (!ready) {

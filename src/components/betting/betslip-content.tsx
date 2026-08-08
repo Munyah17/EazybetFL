@@ -89,7 +89,7 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
   async function handlePlaceBet() {
     if (!profile) {
       toast.error("Sign in to place a bet");
-      router.push("/sign-in?next=/");
+      router.push("/login?next=/");
       return;
     }
     if (selections.length === 0) return;

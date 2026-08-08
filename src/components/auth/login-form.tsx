@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -11,19 +11,29 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
 
-export default function SignInPage() {
-  return (
-    <Suspense>
-      <SignInForm />
-    </Suspense>
-  );
-}
-
-function SignInForm() {
+export function LoginForm({
+  redirectTo = "/",
+  allowedRoles,
+  invalidRoleMessage = "You don't have access to this portal.",
+  showSocial = false,
+  showSignUpLink = false,
+  showForgotPassword = true,
+}: {
+  redirectTo?: string;
+  /** Checked right after password auth succeeds, before treating login as
+   * complete -- rejects (and signs back out) a correctly authenticated
+   * user who's in the wrong portal, e.g. a regular user hitting the admin
+   * login. A plain string array, not a function -- this component is
+   * rendered from server components (admin/super-admin layouts) that
+   * can't pass closures across the server/client boundary. */
+  allowedRoles?: string[];
+  invalidRoleMessage?: string;
+  showSocial?: boolean;
+  showSignUpLink?: boolean;
+  showForgotPassword?: boolean;
+}) {
   const supabase = createClient();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/";
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -49,15 +59,25 @@ function SignInForm() {
       email = resolvedEmail;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-
-    if (error) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.user) {
+      setLoading(false);
       toast.error("Invalid credentials", { description: "Check your email/phone and password." });
       return;
     }
 
-    router.push(next);
+    if (allowedRoles) {
+      const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
+      if (!profile || !allowedRoles.includes(profile.role)) {
+        await supabase.auth.signOut();
+        setLoading(false);
+        toast.error("Access denied", { description: invalidRoleMessage });
+        return;
+      }
+    }
+
+    setLoading(false);
+    router.push(redirectTo);
     router.refresh();
   }
 
@@ -67,11 +87,6 @@ function SignInForm() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="text-center">
-        <h1 className="text-xl font-bold">Welcome Back!</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Sign in to continue</p>
-      </div>
-
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="identifier">Email or Phone</Label>
@@ -87,9 +102,11 @@ function SignInForm() {
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
-            <Link href="/forgot-password" className="text-xs font-medium text-primary">
-              Forgot Password?
-            </Link>
+            {showForgotPassword && (
+              <Link href="/forgot-password" className="text-xs font-medium text-primary">
+                Forgot Password?
+              </Link>
+            )}
           </div>
           <div className="relative">
             <Input
@@ -116,30 +133,36 @@ function SignInForm() {
         </Button>
       </form>
 
-      <div className="flex items-center gap-3">
-        <Separator className="flex-1" />
-        <span className="text-xs text-muted-foreground">or continue with</span>
-        <Separator className="flex-1" />
-      </div>
+      {showSocial && (
+        <>
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground">or continue with</span>
+            <Separator className="flex-1" />
+          </div>
 
-      <div className="flex justify-center gap-4">
-        <SocialButton label="Google" onClick={() => comingSoon("Google")}>
-          <GoogleIcon />
-        </SocialButton>
-        <SocialButton label="Facebook" onClick={() => comingSoon("Facebook")}>
-          <FacebookIcon />
-        </SocialButton>
-        <SocialButton label="Phone" onClick={() => comingSoon("Phone OTP")}>
-          <PhoneIcon />
-        </SocialButton>
-      </div>
+          <div className="flex justify-center gap-4">
+            <SocialButton label="Google" onClick={() => comingSoon("Google")}>
+              <GoogleIcon />
+            </SocialButton>
+            <SocialButton label="Facebook" onClick={() => comingSoon("Facebook")}>
+              <FacebookIcon />
+            </SocialButton>
+            <SocialButton label="Phone" onClick={() => comingSoon("Phone OTP")}>
+              <PhoneIcon />
+            </SocialButton>
+          </div>
+        </>
+      )}
 
-      <p className="text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
-        <Link href="/sign-up" className="font-semibold text-primary">
-          Sign Up
-        </Link>
-      </p>
+      {showSignUpLink && (
+        <p className="text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link href="/sign-up" className="font-semibold text-primary">
+            Sign Up
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

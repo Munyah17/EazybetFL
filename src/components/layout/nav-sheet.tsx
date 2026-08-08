@@ -104,7 +104,7 @@ export function NavSheet() {
                 </Link>
               </Button>
               <Button asChild variant="outline" onClick={() => setOpen(false)}>
-                <Link href="/sign-in">
+                <Link href="/login">
                   <LogIn className="size-4.5" /> Sign In
                 </Link>
               </Button>

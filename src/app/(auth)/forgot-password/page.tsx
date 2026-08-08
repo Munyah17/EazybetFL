@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
           If an account exists for <span className="font-medium text-foreground">{email}</span>,
           we&apos;ve sent a link to reset your password.
         </p>
-        <Link href="/sign-in" className="text-sm font-semibold text-primary">
+        <Link href="/login" className="text-sm font-semibold text-primary">
           Back to Sign In
         </Link>
       </div>
@@ -73,7 +73,7 @@ export default function ForgotPasswordPage() {
 
       <p className="text-center text-sm text-muted-foreground">
         Remembered your password?{" "}
-        <Link href="/sign-in" className="font-semibold text-primary">
+        <Link href="/login" className="font-semibold text-primary">
           Sign In
         </Link>
       </p>
