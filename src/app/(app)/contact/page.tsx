@@ -1,6 +1,8 @@
-import { Mail, MessageCircle, Phone, Clock, MapPin } from "lucide-react";
+import Link from "next/link";
+import { Mail, MessageCircle, Phone, Clock, MapPin, LifeBuoy } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Contact Us | EazyBet" };
 
@@ -21,6 +23,12 @@ export default function ContactPage() {
           Placeholder contact details — replace with your real support email,
           WhatsApp/phone numbers, and office address before launch.
         </p>
+
+        <Button asChild size="lg">
+          <Link href="/account/support">
+            <LifeBuoy /> Message Support
+          </Link>
+        </Button>
 
         <Card className="gap-0 overflow-hidden border-border/60 bg-card p-0">
           {CHANNELS.map((c) => (
