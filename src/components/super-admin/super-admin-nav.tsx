@@ -2,16 +2,39 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Handshake, ScrollText, Vault } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Handshake,
+  ScrollText,
+  Vault,
+  Ticket,
+  Banknote,
+  Gift,
+  Image as ImageIcon,
+  TicketPercent,
+  UserCog,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function SuperAdminNav() {
   const pathname = usePathname();
 
+  // Super admin is the top-most role -- its nav is every admin operational
+  // tool plus the governance-only ones (Admins, Escrow, Audit Log), not a
+  // separate, smaller set of its own. The operational items route through
+  // the same /admin/* pages admin itself uses (no need to fork/duplicate
+  // them); only the governance items have their own /super-admin/* pages.
   const items = [
     { href: "/super-admin", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/super-admin/admins", label: "Admins", icon: Users },
+    { href: "/admin/users", label: "Users", icon: UserCog },
     { href: "/super-admin/agents", label: "Agents", icon: Handshake },
+    { href: "/admin/bets", label: "Bets", icon: Ticket },
+    { href: "/admin/withdrawals", label: "Withdrawals", icon: Banknote },
+    { href: "/admin/vouchers", label: "Vouchers", icon: TicketPercent },
+    { href: "/admin/promotions", label: "Promotions", icon: Gift },
+    { href: "/admin/banners", label: "Banners", icon: ImageIcon },
+    { href: "/super-admin/admins", label: "Admins", icon: Users },
     { href: "/super-admin/escrow", label: "Escrow", icon: Vault },
     { href: "/super-admin/audit-log", label: "Audit Log", icon: ScrollText },
   ];
