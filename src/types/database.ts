@@ -839,6 +839,35 @@ export type Database = {
         }
         Relationships: []
       }
+      responsible_gambling_settings: {
+        Row: {
+          daily_deposit_limit: number | null
+          self_exclusion_until: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          daily_deposit_limit?: number | null
+          self_exclusion_until?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          daily_deposit_limit?: number | null
+          self_exclusion_until?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "responsible_gambling_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sport_groups: {
         Row: {
           active: boolean
@@ -865,6 +894,83 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      support_ticket_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_id: string
+          sender_role: Database["public"]["Enums"]["user_role"]
+          ticket_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_id: string
+          sender_role: Database["public"]["Enums"]["user_role"]
+          ticket_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+          sender_role?: Database["public"]["Enums"]["user_role"]
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_bonuses: {
         Row: {
@@ -1207,6 +1313,10 @@ export type Database = {
         Args: { p_deposit_id: string }
         Returns: undefined
       }
+      fn_create_support_ticket: {
+        Args: { p_message: string; p_subject: string }
+        Returns: string
+      }
       fn_expire_booked_bets: { Args: never; Returns: number }
       fn_fail_deposit: { Args: { p_deposit_id: string }; Returns: undefined }
       fn_generate_vouchers: {
@@ -1274,6 +1384,10 @@ export type Database = {
         Args: { p_reason: string; p_withdrawal_id: string }
         Returns: undefined
       }
+      fn_reply_support_ticket: {
+        Args: { p_message: string; p_ticket_id: string }
+        Returns: undefined
+      }
       fn_request_withdrawal: {
         Args: {
           p_amount: number
@@ -1281,6 +1395,18 @@ export type Database = {
           p_method: Database["public"]["Enums"]["payment_method"]
         }
         Returns: Json
+      }
+      fn_self_exclude: { Args: { p_duration_days: number }; Returns: undefined }
+      fn_set_deposit_limit: {
+        Args: { p_daily_limit: number }
+        Returns: undefined
+      }
+      fn_set_ticket_status: {
+        Args: {
+          p_status: Database["public"]["Enums"]["support_ticket_status"]
+          p_ticket_id: string
+        }
+        Returns: undefined
       }
       fn_settle_bet: { Args: { p_bet_id: string }; Returns: Json }
       fn_settle_selection: {
@@ -1415,6 +1541,7 @@ export type Database = {
         | "odds_boost"
         | "cashback"
       selection_status: "pending" | "won" | "lost" | "void"
+      support_ticket_status: "open" | "resolved"
       user_role: "user" | "admin" | "super_admin" | "agent"
       voucher_status: "active" | "redeemed" | "void"
       wallet_bucket: "principal" | "balance"
@@ -1634,6 +1761,7 @@ export const Constants = {
         "cashback",
       ],
       selection_status: ["pending", "won", "lost", "void"],
+      support_ticket_status: ["open", "resolved"],
       user_role: ["user", "admin", "super_admin", "agent"],
       voucher_status: ["active", "redeemed", "void"],
       wallet_bucket: ["principal", "balance"],

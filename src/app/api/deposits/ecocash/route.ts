@@ -8,6 +8,7 @@ import { formatMoney } from "@/lib/format";
 import { friendlyError } from "@/lib/friendly-error";
 import { rateLimited } from "@/lib/rate-limit";
 import { MAX_SINGLE_DEPOSIT, MAX_DEPOSIT_ATTEMPTS_PER_HOUR } from "@/lib/deposit-limits";
+import { checkResponsibleGamblingLimits } from "@/lib/responsible-gambling";
 import type { Json } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,9 @@ export async function POST(req: NextRequest) {
 
   const limited = await rateLimited(`deposit:${user.id}`, MAX_DEPOSIT_ATTEMPTS_PER_HOUR, 3600);
   if (limited) return limited;
+
+  const blockedReason = await checkResponsibleGamblingLimits(supabase, user.id, amount);
+  if (blockedReason) return NextResponse.json({ error: blockedReason }, { status: 403 });
 
   const { data: wallet } = await supabase.from("wallets").select("id").eq("user_id", user.id).single();
   if (!wallet) return NextResponse.json({ error: "Wallet not found" }, { status: 400 });

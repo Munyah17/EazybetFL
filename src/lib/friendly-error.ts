@@ -34,6 +34,7 @@ const KNOWN_ERRORS: Record<string, string> = {
   RATE_LIMITED: "Too many requests. Please wait a moment and try again.",
   RECIPIENT_NOT_FOUND: "We couldn't find a user with that account number.",
   SELECTIONS_NOT_FULLY_SETTLED: "Not all selections have been settled yet.",
+  SELF_EXCLUDED: "Your account is currently self-excluded from betting.",
   SHARE_BLOCKED_PRINCIPAL:
     "You can only share winnings, not deposited funds. Buy them a voucher instead — it can be used to place bets.",
   VOUCHER_ALREADY_REDEEMED: "That voucher has already been redeemed.",

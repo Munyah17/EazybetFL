@@ -9,6 +9,8 @@ import {
   Gift,
   Bell,
   Send,
+  ShieldAlert,
+  LifeBuoy,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
@@ -35,6 +37,8 @@ export default async function AccountPage() {
     { href: "/account/security", label: "Security", icon: ShieldCheck },
     { href: "/account/referral", label: "Refer & Earn", icon: Gift },
     { href: "/account/notifications", label: "Notifications", icon: Bell },
+    { href: "/account/support", label: "Support", icon: LifeBuoy },
+    { href: "/account/responsible-gambling", label: "Responsible Gambling", icon: ShieldAlert },
   ];
 
   return (

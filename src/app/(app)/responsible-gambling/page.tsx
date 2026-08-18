@@ -32,12 +32,12 @@ export default function ResponsibleGamblingPage() {
         </Section>
 
         <Section title="Tools to Stay in Control">
-          Deposit limits, cool-off periods, and self-exclusion can be
-          arranged by contacting support — reach out through the{" "}
-          <a href="/contact" className="text-primary hover:underline">
-            Contact
+          Set your own daily deposit limit or self-exclude anytime from{" "}
+          <a href="/account/responsible-gambling" className="text-primary hover:underline">
+            Account &rarr; Responsible Gambling
           </a>{" "}
-          page and we&apos;ll set these up on your account.
+          — no need to contact support. Self-exclusion takes effect
+          immediately and can&apos;t be undone early from your account.
         </Section>
 
         <Section title="Getting Help">
