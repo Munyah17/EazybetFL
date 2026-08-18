@@ -9,11 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { createClient } from "@/lib/supabase/client";
 import { friendlyError } from "@/lib/friendly-error";
 
 export default function SignUpPage() {
-  const supabase = createClient();
   const router = useRouter();
 
   const [fullName, setFullName] = useState("");
@@ -45,17 +43,20 @@ export default function SignUpPage() {
     setLoading(true);
     const fullPhone = phone ? `+263${phone.replace(/^0+/, "")}` : null;
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName, phone: fullPhone },
-      },
+    // Routed through our own server so signup attempts can be rate
+    // limited -- same reason as login.
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, fullName, phone: fullPhone }),
     });
     setLoading(false);
 
-    if (error) {
-      toast.error("Sign up failed", { description: friendlyError(error) });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      toast.error("Sign up failed", {
+        description: res.status === 429 ? body.error : friendlyError(body.error ?? "Please try again."),
+      });
       return;
     }
 

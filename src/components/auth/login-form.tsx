@@ -59,24 +59,28 @@ export function LoginForm({
       email = resolvedEmail;
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.user) {
-      setLoading(false);
-      toast.error("Invalid credentials", { description: "Check your email/phone and password." });
+    // Routed through our own server so login attempts can be rate
+    // limited -- the browser client talks to Supabase's Auth API
+    // directly, which our backend never sees.
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, allowedRoles }),
+    });
+    setLoading(false);
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 429) {
+        toast.error("Too many attempts", { description: body.error });
+      } else if (body.error === "access_denied") {
+        toast.error("Access denied", { description: invalidRoleMessage });
+      } else {
+        toast.error("Invalid credentials", { description: "Check your email/phone and password." });
+      }
       return;
     }
 
-    if (allowedRoles) {
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
-      if (!profile || !allowedRoles.includes(profile.role)) {
-        await supabase.auth.signOut();
-        setLoading(false);
-        toast.error("Access denied", { description: invalidRoleMessage });
-        return;
-      }
-    }
-
-    setLoading(false);
     router.push(redirectTo);
     router.refresh();
   }

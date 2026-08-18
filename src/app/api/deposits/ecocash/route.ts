@@ -6,6 +6,8 @@ import { sendEmail } from "@/lib/email/send";
 import { depositCompletedEmail } from "@/lib/email/templates";
 import { formatMoney } from "@/lib/format";
 import { friendlyError } from "@/lib/friendly-error";
+import { rateLimited } from "@/lib/rate-limit";
+import { MAX_SINGLE_DEPOSIT, MAX_DEPOSIT_ATTEMPTS_PER_HOUR } from "@/lib/deposit-limits";
 import type { Json } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +33,18 @@ export async function POST(req: NextRequest) {
   if (!amount || amount <= 0) {
     return NextResponse.json({ error: "Enter a valid amount" }, { status: 400 });
   }
+  if (amount > MAX_SINGLE_DEPOSIT) {
+    return NextResponse.json(
+      { error: `Maximum deposit is ${formatMoney(MAX_SINGLE_DEPOSIT)} per transaction.` },
+      { status: 400 }
+    );
+  }
   if (!phone) {
     return NextResponse.json({ error: "Enter your EcoCash number" }, { status: 400 });
   }
+
+  const limited = await rateLimited(`deposit:${user.id}`, MAX_DEPOSIT_ATTEMPTS_PER_HOUR, 3600);
+  if (limited) return limited;
 
   const { data: wallet } = await supabase.from("wallets").select("id").eq("user_id", user.id).single();
   if (!wallet) return NextResponse.json({ error: "Wallet not found" }, { status: 400 });

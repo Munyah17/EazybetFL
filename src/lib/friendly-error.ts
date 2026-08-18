@@ -31,6 +31,7 @@ const KNOWN_ERRORS: Record<string, string> = {
   NOT_YOUR_CUSTOMER: "This customer isn't assigned to you.",
   NO_SELECTIONS: "Add at least one selection first.",
   OUTCOME_NOT_FOUND: "That selection is no longer available.",
+  RATE_LIMITED: "Too many requests. Please wait a moment and try again.",
   RECIPIENT_NOT_FOUND: "We couldn't find a user with that account number.",
   SELECTIONS_NOT_FULLY_SETTLED: "Not all selections have been settled yet.",
   SHARE_BLOCKED_PRINCIPAL:

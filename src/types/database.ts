@@ -821,6 +821,24 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_hits: {
+        Row: {
+          count: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          window_start: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       sport_groups: {
         Row: {
           active: boolean
@@ -1180,6 +1198,10 @@ export type Database = {
       }
       fn_cash_out: { Args: { p_bet_id: string }; Returns: Json }
       fn_cash_out_preview: { Args: { p_bet_id: string }; Returns: Json }
+      fn_check_rate_limit: {
+        Args: { p_key: string; p_max: number; p_window_seconds: number }
+        Returns: boolean
+      }
       fn_choose: { Args: { k: number; n: number }; Returns: number }
       fn_complete_deposit: {
         Args: { p_deposit_id: string }
