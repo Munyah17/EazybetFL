@@ -66,20 +66,19 @@ export function Footer() {
       </div>
 
       <div className="mx-auto max-w-[1440px] border-t border-border px-4 py-4 lg:px-5">
-        <p className="text-xs text-muted-foreground">
-          EazyBet is committed to responsible gambling. You must be 18+ to bet. Please play responsibly.
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          © {new Date().getFullYear()} EazyBet. All rights reserved.
-        </p>
-        <a
-          href="https://globalspaceweb.co.zw"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-1 block text-xs text-muted-foreground hover:text-primary"
-        >
-          Developed &amp; Powered By Global Space Web &middot; +263773909307
-        </a>
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-muted-foreground">
+          <span>EazyBet is committed to responsible gambling. You must be 18+ to bet. Please play responsibly.</span>
+          <span aria-hidden className="hidden sm:inline">
+            &middot;
+          </span>
+          <span>© {new Date().getFullYear()} EazyBet. All rights reserved.</span>
+          <span aria-hidden className="hidden sm:inline">
+            &middot;
+          </span>
+          <a href="https://globalspaceweb.co.zw" target="_blank" rel="noopener noreferrer" className="hover:text-primary">
+            Developed &amp; Powered By Global Space Web &middot; +263773909307
+          </a>
+        </div>
       </div>
     </footer>
   );
