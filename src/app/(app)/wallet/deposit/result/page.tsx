@@ -26,7 +26,14 @@ function ResultBody() {
   useEffect(() => {
     // Polls an external system (Paynow, via our own API) for payment
     // status -- exactly what effects are for, not a plain state mirror.
+    // Up to 30 tries, 3s apart (~90s total) -- long enough to cover normal
+    // gateway confirmation latency without the user staring at a spinner
+    // forever. If they close the tab before this resolves, the daily
+    // deposit-reconciliation sweep (see sync-settlement) is the fallback
+    // that stops a real payment from being permanently stuck as
+    // "processing" just because nobody was watching this page.
     let attempts = 0;
+    const MAX_ATTEMPTS = 30;
     const check = async (depositId: string) => {
       attempts++;
       const res = await fetch(`/api/deposits/paynow/${depositId}/status`);
@@ -36,8 +43,8 @@ function ResultBody() {
         await refreshWallet();
       } else if (data.status === "failed") {
         setStatus("failed");
-      } else if (attempts < 8) {
-        setTimeout(() => check(depositId), 2500);
+      } else if (attempts < MAX_ATTEMPTS) {
+        setTimeout(() => check(depositId), 3000);
       } else {
         setStatus("pending");
       }
