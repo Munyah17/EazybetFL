@@ -1,9 +1,14 @@
 const BASE_URL = process.env.ODDS_API_BASE_URL ?? "https://api.the-odds-api.com/v4";
 
-/** Same provider, 3 separate keys/accounts -- The Odds API's monthly quota is
- * per-key, so rotating to the next key on exhaustion instead of failing outright
- * keeps syncing working once the first key(s) run out for the month. */
+/** Same provider, multiple separate keys/accounts -- The Odds API's monthly
+ * quota is per-key, so rotating to the next key on exhaustion instead of
+ * failing outright keeps syncing working once the first key(s) run out for
+ * the month. FALLBACK_3 is listed first deliberately: as of 2026-08-20 it's
+ * the only one of the four with real quota left (fresh, 500/500), the other
+ * three are dead/exhausted -- leading with it avoids 2-3 guaranteed-failed
+ * requests every sync run. Re-order once the older keys' quota resets. */
 const API_KEYS = [
+  process.env.ODDS_API_KEY_FALLBACK_3,
   process.env.ODDS_API_KEY,
   process.env.ODDS_API_KEY_FALLBACK_1,
   process.env.ODDS_API_KEY_FALLBACK_2,
