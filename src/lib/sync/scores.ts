@@ -25,9 +25,21 @@ export async function syncScores(
   if (keysParam) {
     keys = keysParam.split(",");
   } else {
-    const { data, error } = await supabase.from("competitions").select("odds_api_key").eq("active", true);
+    // Same priority ordering as syncOdds -- if quota runs out mid-run,
+    // it's low-priority sports' bets that stay unsettled longer, not
+    // football's.
+    type Row = { odds_api_key: string; display_order: number; sport_groups: { display_order: number } | null };
+    const { data, error } = await supabase
+      .from("competitions")
+      .select("odds_api_key, display_order, sport_groups ( display_order )")
+      .eq("active", true);
     if (error) return { ok: false, error: error.message, status: 500 };
-    keys = (data ?? []).map((c) => c.odds_api_key);
+    const rows = (data ?? []) as unknown as Row[];
+    rows.sort((a, b) => {
+      const groupDiff = (a.sport_groups?.display_order ?? 999) - (b.sport_groups?.display_order ?? 999);
+      return groupDiff !== 0 ? groupDiff : a.display_order - b.display_order;
+    });
+    keys = rows.map((c) => c.odds_api_key);
   }
 
   const summary: Record<string, unknown> = {};

@@ -25,19 +25,32 @@ export async function syncOdds(
   // starts or ends, which is exactly why this was only ever surfacing
   // whichever 2-3 of a ~16-key list happened to be in season. `?keys=` is
   // still honored for one-off/manual syncs of a specific competition.
-  let rows: { id: string; odds_api_key: string }[];
+  // display_order on both tables already encodes the football/big-league
+  // priority built for the UI (see groupPriority/competitionPriority in
+  // odds-api/client.ts) -- reusing it here too means that when the API
+  // quota runs out mid-run (it does, routinely, on the current plan), it's
+  // the low-priority sports that get cut off, not football.
+  type Row = { id: string; odds_api_key: string; display_order: number; sport_groups: { display_order: number } | null };
+  let rows: Row[];
   if (keysParam) {
     const { data, error } = await supabase
       .from("competitions")
-      .select("id, odds_api_key")
+      .select("id, odds_api_key, display_order, sport_groups ( display_order )")
       .in("odds_api_key", keysParam.split(","));
     if (error) return { ok: false, error: error.message, status: 500 };
-    rows = data ?? [];
+    rows = (data ?? []) as unknown as Row[];
   } else {
-    const { data, error } = await supabase.from("competitions").select("id, odds_api_key").eq("active", true);
+    const { data, error } = await supabase
+      .from("competitions")
+      .select("id, odds_api_key, display_order, sport_groups ( display_order )")
+      .eq("active", true);
     if (error) return { ok: false, error: error.message, status: 500 };
-    rows = data ?? [];
+    rows = (data ?? []) as unknown as Row[];
   }
+  rows.sort((a, b) => {
+    const groupDiff = (a.sport_groups?.display_order ?? 999) - (b.sport_groups?.display_order ?? 999);
+    return groupDiff !== 0 ? groupDiff : a.display_order - b.display_order;
+  });
 
   const compIdByKey = new Map(rows.map((c) => [c.odds_api_key, c.id]));
   const keys = rows.map((c) => c.odds_api_key);
