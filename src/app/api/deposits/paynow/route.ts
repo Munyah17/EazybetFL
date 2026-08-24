@@ -13,7 +13,12 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 type PaymentMethod = Database["public"]["Enums"]["payment_method"];
-const SUPPORTED: PaymentMethod[] = ["onemoney", "visa", "mastercard", "bank_transfer", "innbucks"];
+// Paynow's hosted checkout is where the payer actually picks their
+// instrument (EcoCash, OneMoney, Visa, bank, etc.) -- we never send a
+// pre-selected one, so "paynow" is the only method this route issues today.
+// The older per-instrument values stay accepted so a stale client tab from
+// before this change doesn't get a hard failure mid-deposit.
+const SUPPORTED: PaymentMethod[] = ["paynow", "onemoney", "visa", "mastercard", "bank_transfer", "innbucks"];
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();

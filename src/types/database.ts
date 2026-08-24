@@ -1534,6 +1534,7 @@ export type Database = {
         | "visa"
         | "mastercard"
         | "bank_transfer"
+        | "paynow"
       promo_type:
         | "welcome_bonus"
         | "deposit_bonus"
@@ -1752,6 +1753,7 @@ export const Constants = {
         "visa",
         "mastercard",
         "bank_transfer",
+        "paynow",
       ],
       promo_type: [
         "welcome_bonus",

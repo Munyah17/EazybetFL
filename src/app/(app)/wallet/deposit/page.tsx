@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Smartphone, CreditCard, Landmark, Wallet2 } from "lucide-react";
+import { Smartphone, CreditCard } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,12 +12,16 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/auth/session-provider";
 
+// EcoCash Instant Payment (USSD/EIP) and Paynow are two separate, unrelated
+// integrations -- EIP talks to EcoCash directly, Paynow is a gateway whose
+// own hosted checkout lets the payer pick EcoCash/OneMoney/Visa/bank/etc.
+// themselves. They used to be blurred together behind per-instrument
+// choices that all secretly routed through the same Paynow redirect
+// regardless of which one was picked. EcoCash Instant is disabled for now:
+// no live API keys yet, only sandbox ones -- Paynow is fully activated.
 const METHODS = [
-  { id: "ecocash", label: "EcoCash", icon: Smartphone, needsPhone: true },
-  { id: "onemoney", label: "OneMoney", icon: Smartphone, needsPhone: false },
-  { id: "innbucks", label: "InnBucks", icon: Wallet2, needsPhone: false },
-  { id: "bank_transfer", label: "Bank Transfer", icon: Landmark, needsPhone: false },
-  { id: "visa", label: "Visa / Mastercard", icon: CreditCard, needsPhone: false },
+  { id: "ecocash", label: "EcoCash Instant Payment", icon: Smartphone, needsPhone: true, disabled: true },
+  { id: "paynow", label: "Paynow", icon: CreditCard, needsPhone: false, disabled: false },
 ] as const;
 
 const QUICK_AMOUNTS = [10, 20, 50, 100];
@@ -25,7 +29,7 @@ const QUICK_AMOUNTS = [10, 20, 50, 100];
 export default function DepositPage() {
   const router = useRouter();
   const { refreshWallet } = useSession();
-  const [method, setMethod] = useState<(typeof METHODS)[number]["id"]>("ecocash");
+  const [method, setMethod] = useState<(typeof METHODS)[number]["id"]>("paynow");
   const [amount, setAmount] = useState<string>("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
@@ -63,7 +67,7 @@ export default function DepositPage() {
         const res = await fetch("/api/deposits/paynow", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: amt, method }),
+          body: JSON.stringify({ amount: amt, method: "paynow" }),
         });
         const data = await res.json();
         if (!res.ok) {
@@ -88,11 +92,18 @@ export default function DepositPage() {
             {METHODS.map((m) => (
               <button
                 key={m.id}
+                disabled={m.disabled}
                 onClick={() => setMethod(m.id)}
-                className="flex w-full items-center gap-3 border-b border-border/60 px-4 py-3.5 last:border-0 hover:bg-accent"
+                className={cn(
+                  "flex w-full items-center gap-3 border-b border-border/60 px-4 py-3.5 last:border-0 hover:bg-accent",
+                  m.disabled && "cursor-not-allowed opacity-50 hover:bg-transparent"
+                )}
               >
                 <m.icon className="size-4.5 text-muted-foreground" />
-                <span className="flex-1 text-left text-sm font-medium">{m.label}</span>
+                <span className="flex-1 text-left text-sm font-medium">
+                  {m.label}
+                  {m.disabled && <span className="ml-2 text-xs font-normal text-muted-foreground">(Temporarily unavailable)</span>}
+                </span>
                 <span
                   className={cn(
                     "flex size-4.5 items-center justify-center rounded-full border-2 border-border",
