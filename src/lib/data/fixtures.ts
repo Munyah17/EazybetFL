@@ -32,6 +32,16 @@ export async function getFixtures(opts: {
   let query = supabase.from("fixtures").select(FIXTURE_SELECT);
 
   if (opts.status?.length) query = query.in("status", opts.status);
+  if (opts.status?.includes("upcoming")) {
+    // Nothing currently flips a fixture out of "upcoming" once its kickoff
+    // passes without a matching finished result from the scores sync (which
+    // only looks back 2 days) -- so fixtures that never got a final score
+    // stay "upcoming" forever. Ordered oldest-commence_time-first with a
+    // limit, those stale rows were filling the entire page and burying
+    // today's real fixtures, making the front end look frozen no matter how
+    // recently odds actually synced.
+    query = query.gte("commence_time", new Date().toISOString());
+  }
   query = query.order(opts.orderBy ?? "commence_time", { ascending: true });
   if (opts.limit) query = query.limit(opts.limit);
 
