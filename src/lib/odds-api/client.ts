@@ -110,6 +110,52 @@ async function get<T>(path: string, params: Record<string, string> = {}): Promis
   throw new Error(`Odds API ${path} failed on all ${API_KEYS.length} keys: ${lastError}`);
 }
 
+export type OddsApiKeyStatus = {
+  envVar: string;
+  masked: string;
+  configured: boolean;
+  remaining: number | null;
+  used: number | null;
+  status: "ok" | "low" | "exhausted" | "error" | "not_configured";
+  error?: string;
+};
+
+const LOW_QUOTA_THRESHOLD = 20;
+
+/** Kept separate from API_KEYS (which drops env var names once filtered) so
+ * the super admin status panel can label each key by which env var it came
+ * from. Uses /sports, which The Odds API confirms is free -- x-requests-last
+ * comes back 0 on it -- so checking status here never burns real quota. */
+const NAMED_KEYS: { envVar: string; key: string | undefined }[] = [
+  { envVar: "ODDS_API_KEY_FALLBACK_3", key: process.env.ODDS_API_KEY_FALLBACK_3 },
+  { envVar: "ODDS_API_KEY", key: process.env.ODDS_API_KEY },
+  { envVar: "ODDS_API_KEY_FALLBACK_1", key: process.env.ODDS_API_KEY_FALLBACK_1 },
+  { envVar: "ODDS_API_KEY_FALLBACK_2", key: process.env.ODDS_API_KEY_FALLBACK_2 },
+];
+
+export async function checkKeysStatus(): Promise<OddsApiKeyStatus[]> {
+  return Promise.all(
+    NAMED_KEYS.map(async ({ envVar, key }): Promise<OddsApiKeyStatus> => {
+      if (!key || key === "not-configured-placeholder") {
+        return { envVar, masked: "—", configured: false, remaining: null, used: null, status: "not_configured" };
+      }
+      const masked = key.length > 8 ? `${key.slice(0, 4)}…${key.slice(-4)}` : "••••";
+      try {
+        const res = await fetch(`${BASE_URL}/sports?apiKey=${key}`, { cache: "no-store" });
+        if (!res.ok) {
+          return { envVar, masked, configured: true, remaining: null, used: null, status: "error", error: `HTTP ${res.status}` };
+        }
+        const remaining = Number(res.headers.get("x-requests-remaining"));
+        const used = Number(res.headers.get("x-requests-used"));
+        const status = remaining <= 0 ? "exhausted" : remaining <= LOW_QUOTA_THRESHOLD ? "low" : "ok";
+        return { envVar, masked, configured: true, remaining, used, status };
+      } catch (e) {
+        return { envVar, masked, configured: true, remaining: null, used: null, status: "error", error: (e as Error).message };
+      }
+    })
+  );
+}
+
 export const oddsApi = {
   /** all=true includes out-of-season sports/competitions too -- without it
    * the API only returns whatever's currently active, which is why the

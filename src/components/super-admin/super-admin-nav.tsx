@@ -15,6 +15,7 @@ import {
   TicketPercent,
   UserCog,
   LifeBuoy,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +39,7 @@ export function SuperAdminNav() {
     { href: "/admin/support", label: "Support", icon: LifeBuoy },
     { href: "/super-admin/admins", label: "Admins", icon: Users },
     { href: "/super-admin/escrow", label: "Escrow", icon: Vault },
+    { href: "/super-admin/system", label: "System Status", icon: Activity },
     { href: "/super-admin/audit-log", label: "Audit Log", icon: ScrollText },
   ];
 
