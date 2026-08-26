@@ -3,6 +3,7 @@ import { oddsApi } from "@/lib/odds-api/client";
 import { sendEmail } from "@/lib/email/send";
 import { betWonEmail } from "@/lib/email/templates";
 import { formatMoney } from "@/lib/format";
+import { logError } from "@/lib/log";
 import type { Database } from "@/types/database";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string; status: number };
@@ -51,6 +52,7 @@ export async function syncScores(
       scoreEvents = await oddsApi.getScores(key);
     } catch (e) {
       summary[key] = `fetch failed: ${(e as Error).message}`;
+      await logError("sync:scores", e, { key, step: "fetch" });
       continue;
     }
 
@@ -58,72 +60,95 @@ export async function syncScores(
     for (const ev of scoreEvents) {
       if (!ev.completed || !ev.scores) continue;
 
-      const { data: fixture } = await supabase
-        .from("fixtures")
-        .select("id, status, home_team, away_team")
-        .eq("odds_api_event_id", ev.id)
-        .maybeSingle();
-      if (!fixture || fixture.status === "finished") continue;
+      // Every step below can throw (any Supabase error is turned into a
+      // throw) -- one fixture failing to settle must not stop the rest of
+      // this key's events, and must not be swallowed silently: it's logged
+      // and simply not marked "finished" below, so the next run picks it
+      // back up automatically (see the removed `fixture.status ===
+      // "finished"` skip that used to make a partial failure permanent).
+      try {
+        const { data: fixture, error: fixtureErr } = await supabase
+          .from("fixtures")
+          .select("id, status, home_team, away_team")
+          .eq("odds_api_event_id", ev.id)
+          .maybeSingle();
+        if (fixtureErr) throw new Error(`fixture lookup failed: ${fixtureErr.message}`);
+        if (!fixture) continue; // not a fixture we track
 
-      const homeScore = Number(ev.scores.find((s) => s.name === fixture.home_team)?.score ?? NaN);
-      const awayScore = Number(ev.scores.find((s) => s.name === fixture.away_team)?.score ?? NaN);
-      if (Number.isNaN(homeScore) || Number.isNaN(awayScore)) continue;
+        const homeScore = Number(ev.scores.find((s) => s.name === fixture.home_team)?.score ?? NaN);
+        const awayScore = Number(ev.scores.find((s) => s.name === fixture.away_team)?.score ?? NaN);
+        if (Number.isNaN(homeScore) || Number.isNaN(awayScore)) continue;
 
-      await supabase
-        .from("fixtures")
-        .update({ status: "finished", home_score: homeScore, away_score: awayScore })
-        .eq("id", fixture.id);
+        const { data: markets, error: marketsErr } = await supabase
+          .from("markets")
+          .select("id, market_key")
+          .eq("fixture_id", fixture.id);
+        if (marketsErr) throw new Error(`markets lookup failed: ${marketsErr.message}`);
 
-      const { data: markets } = await supabase
-        .from("markets")
-        .select("id, market_key")
-        .eq("fixture_id", fixture.id);
+        const winnerName =
+          homeScore > awayScore ? fixture.home_team : awayScore > homeScore ? fixture.away_team : "Draw";
+        const total = homeScore + awayScore;
 
-      const winnerName =
-        homeScore > awayScore ? fixture.home_team : awayScore > homeScore ? fixture.away_team : "Draw";
-      const total = homeScore + awayScore;
+        for (const market of markets ?? []) {
+          const { data: outcomes, error: outcomesErr } = await supabase
+            .from("odds_outcomes")
+            .select("id, name, point")
+            .eq("market_id", market.id);
+          if (outcomesErr) throw new Error(`outcomes lookup failed (market ${market.id}): ${outcomesErr.message}`);
 
-      for (const market of markets ?? []) {
-        const { data: outcomes } = await supabase
-          .from("odds_outcomes")
-          .select("id, name, point")
-          .eq("market_id", market.id);
+          const { data: pendingSelections, error: selErr } = await supabase
+            .from("bet_selections")
+            .select("id, bet_id, market_id, selection_name")
+            .eq("market_id", market.id)
+            .eq("status", "pending");
+          if (selErr) throw new Error(`selections lookup failed (market ${market.id}): ${selErr.message}`);
 
-        const { data: pendingSelections } = await supabase
-          .from("bet_selections")
-          .select("id, bet_id, market_id, selection_name")
-          .eq("market_id", market.id)
-          .eq("status", "pending");
+          for (const sel of (pendingSelections ?? []) as SelectionRow[]) {
+            let status: "won" | "lost" | "void" = "lost";
 
-        for (const sel of (pendingSelections ?? []) as SelectionRow[]) {
-          let status: "won" | "lost" | "void" = "lost";
-
-          if (market.market_key === "h2h") {
-            status = sel.selection_name === winnerName ? "won" : "lost";
-          } else if (market.market_key === "totals") {
-            const outcome = outcomes?.find((o) => o.name === sel.selection_name);
-            const point = outcome?.point ?? null;
-            if (point === null) {
-              status = "void";
-            } else if (total === point) {
-              status = "void";
-            } else if (sel.selection_name === "Over") {
-              status = total > point ? "won" : "lost";
-            } else if (sel.selection_name === "Under") {
-              status = total < point ? "won" : "lost";
+            if (market.market_key === "h2h") {
+              status = sel.selection_name === winnerName ? "won" : "lost";
+            } else if (market.market_key === "totals") {
+              const outcome = outcomes?.find((o) => o.name === sel.selection_name);
+              const point = outcome?.point ?? null;
+              if (point === null) {
+                status = "void";
+              } else if (total === point) {
+                status = "void";
+              } else if (sel.selection_name === "Over") {
+                status = total > point ? "won" : "lost";
+              } else if (sel.selection_name === "Under") {
+                status = total < point ? "won" : "lost";
+              }
             }
+
+            const { error: updateSelErr } = await supabase
+              .from("bet_selections")
+              .update({ status, settled_at: new Date().toISOString() })
+              .eq("id", sel.id);
+            if (updateSelErr) throw new Error(`selection update failed (${sel.id}): ${updateSelErr.message}`);
           }
 
-          await supabase
-            .from("bet_selections")
-            .update({ status, settled_at: new Date().toISOString() })
-            .eq("id", sel.id);
+          const { error: closeMarketErr } = await supabase
+            .from("markets")
+            .update({ status: "closed" })
+            .eq("id", market.id);
+          if (closeMarketErr) throw new Error(`market close failed (${market.id}): ${closeMarketErr.message}`);
         }
 
-        await supabase.from("markets").update({ status: "closed" }).eq("id", market.id);
-      }
+        // Flip to "finished" only once every market's selections above
+        // actually settled -- if anything threw, this is skipped, and the
+        // fixture stays eligible for retry on the next run.
+        const { error: finishErr } = await supabase
+          .from("fixtures")
+          .update({ status: "finished", home_score: homeScore, away_score: awayScore })
+          .eq("id", fixture.id);
+        if (finishErr) throw new Error(`fixture finish update failed: ${finishErr.message}`);
 
-      finished++;
+        finished++;
+      } catch (e) {
+        await logError("sync:scores", e, { key, eventId: ev.id });
+      }
     }
     summary[key] = finished;
   }
@@ -142,7 +167,10 @@ export async function syncScores(
     if (!allResolved || !selections?.length) continue;
 
     const { data: result, error } = await supabase.rpc("fn_settle_bet", { p_bet_id: bet.id });
-    if (error) continue;
+    if (error) {
+      await logError("sync:scores", error.message, { step: "settle_bet", betId: bet.id });
+      continue;
+    }
     settledBets++;
 
     const settled = result as { status: string; payout: number } | null;

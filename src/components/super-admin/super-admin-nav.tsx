@@ -16,6 +16,7 @@ import {
   UserCog,
   LifeBuoy,
   Activity,
+  FileWarning,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +41,7 @@ export function SuperAdminNav() {
     { href: "/super-admin/admins", label: "Admins", icon: Users },
     { href: "/super-admin/escrow", label: "Escrow", icon: Vault },
     { href: "/super-admin/system", label: "System Status", icon: Activity },
+    { href: "/super-admin/logs", label: "Logs", icon: FileWarning },
     { href: "/super-admin/audit-log", label: "Audit Log", icon: ScrollText },
   ];
 

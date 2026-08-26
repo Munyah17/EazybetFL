@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCronSecret } from "@/lib/cron-auth";
 import { syncSports } from "@/lib/sync/sports";
 import { syncOdds } from "@/lib/sync/odds";
+import { logError } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -21,11 +22,16 @@ export async function GET(req: NextRequest) {
 
   const sports = await syncSports(supabase);
   if (!sports.ok) {
+    await logError("cron:sync-catalog", sports.error, { step: "sports" });
     return NextResponse.json({ sports: { error: sports.error } }, { status: sports.status });
   }
 
+  // Odds sync depends on the competitions sports sync just wrote, so it's a
+  // real sequential dependency (unlike sync-settlement's three steps, which
+  // are independent and must not short-circuit each other).
   const odds = await syncOdds(supabase);
   if (!odds.ok) {
+    await logError("cron:sync-catalog", odds.error, { step: "odds" });
     return NextResponse.json({ sports: sports.data, odds: { error: odds.error } }, { status: odds.status });
   }
 

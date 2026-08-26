@@ -56,13 +56,19 @@ export default function DepositPage() {
           body: JSON.stringify({ amount: amt, phone }),
         });
         const data = await res.json();
-        if (!res.ok) {
+        // Check `data.status` explicitly rather than `res.ok` -- a "still
+        // confirming" response is a 2xx (so res.ok is true) but is not a
+        // success, and must never be presented as one.
+        if (data.status === "completed") {
+          toast.success("Deposit successful!", { description: `${amt} added to your wallet.` });
+          await refreshWallet();
+          router.push("/wallet");
+        } else if (data.status === "pending") {
+          toast.info("Still confirming your payment", { description: data.message });
+          router.push("/wallet");
+        } else {
           toast.error("Deposit failed", { description: data.message ?? data.error });
-          return;
         }
-        toast.success("Deposit successful!", { description: `${amt} added to your wallet.` });
-        await refreshWallet();
-        router.push("/wallet");
       } else {
         const res = await fetch("/api/deposits/paynow", {
           method: "POST",

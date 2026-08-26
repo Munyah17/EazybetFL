@@ -9,6 +9,7 @@ import { friendlyError } from "@/lib/friendly-error";
 import { rateLimited } from "@/lib/rate-limit";
 import { MAX_SINGLE_DEPOSIT, MAX_DEPOSIT_ATTEMPTS_PER_HOUR } from "@/lib/deposit-limits";
 import { checkResponsibleGamblingLimits } from "@/lib/responsible-gambling";
+import { logError } from "@/lib/log";
 import type { Json } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -97,8 +98,15 @@ export async function POST(req: NextRequest) {
 
     if (isSuccessStatusMessage(charge.statusMessage)) {
       await admin.rpc("fn_complete_deposit", { p_deposit_id: deposit.id });
-      if (user.email) {
-        await sendEmail(user.email, "Deposit received", depositCompletedEmail(formatMoney(amount), "EcoCash"));
+      // Isolated from the outer catch: a failed confirmation email must
+      // never cause an already-completed deposit to be reported back to
+      // the client as merely "pending" -- the wallet was already credited.
+      try {
+        if (user.email) {
+          await sendEmail(user.email, "Deposit received", depositCompletedEmail(formatMoney(amount), "EcoCash"));
+        }
+      } catch (e) {
+        await logError("api:deposits/ecocash", e, { depositId: deposit.id, step: "confirmation_email" });
       }
       return NextResponse.json({ status: "completed", depositId: deposit.id, amount });
     }
@@ -116,8 +124,22 @@ export async function POST(req: NextRequest) {
       { status: 402 }
     );
   } catch (e) {
-    console.error("[deposits/ecocash] unexpected error:", (e as Error).message);
-    await admin.from("deposits").update({ status: "failed" }).eq("id", deposit.id);
-    return NextResponse.json({ error: "The payment could not be completed. Please try again." }, { status: 502 });
+    // An exception here (timeout, network blip, malformed response) is
+    // *our* side failing to confirm what happened -- it is not evidence
+    // EcoCash didn't charge the user's phone. Marking this "failed" would
+    // be a false failure: the money may already be gone from a real
+    // account. Leave it "processing" (never touch its status here) and let
+    // reconcileStuckDeposits re-verify the truth via an authenticated
+    // ecocashLookup, same as any other stuck deposit -- exactly the
+    // safety net that exists for this precise situation.
+    await logError("api:deposits/ecocash", e, { depositId: deposit.id });
+    return NextResponse.json(
+      {
+        status: "pending",
+        depositId: deposit.id,
+        message: "We couldn't confirm this payment yet. We'll update your wallet automatically once it clears -- check back shortly.",
+      },
+      { status: 202 }
+    );
   }
 }

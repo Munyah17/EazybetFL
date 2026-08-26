@@ -50,6 +50,7 @@ export async function paynowInitiate(params: {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: body.toString(),
     cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
   });
 
   const parsed = parseResponse(await res.text());
@@ -62,7 +63,10 @@ export async function paynowInitiate(params: {
 }
 
 export async function paynowPoll(pollUrl: string) {
-  const res = await fetch(pollUrl, { cache: "no-store" });
+  // A hung/slow Paynow poll would otherwise block the calling serverless
+  // function until Vercel's own platform timeout kills it -- a bare, opaque
+  // 504 instead of a controlled "couldn't confirm yet, try again" response.
+  const res = await fetch(pollUrl, { cache: "no-store", signal: AbortSignal.timeout(10_000) });
   return parseResponse(await res.text());
 }
 

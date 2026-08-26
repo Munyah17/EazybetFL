@@ -65,6 +65,11 @@ export async function ecocashCharge(params: {
     headers: { Authorization: authHeader(), "Content-Type": "application/json" },
     body: JSON.stringify(body),
     cache: "no-store",
+    // A hang here must surface as a thrown timeout, not block the request
+    // until Vercel's own platform timeout kills it -- the caller (deposits
+    // route) depends on this throwing so it can leave the deposit
+    // "processing" rather than guess at an outcome.
+    signal: AbortSignal.timeout(15_000),
   });
 
   const json = await res.json();
@@ -77,7 +82,7 @@ export async function ecocashCharge(params: {
 export async function ecocashLookup(endUserId: string, clientCorrelator: string) {
   const res = await fetch(
     `${BASE_URL}/${encodeURIComponent(endUserId)}/transactions/amount/${encodeURIComponent(clientCorrelator)}`,
-    { headers: { Authorization: authHeader() }, cache: "no-store" }
+    { headers: { Authorization: authHeader() }, cache: "no-store", signal: AbortSignal.timeout(10_000) }
   );
   if (!res.ok) throw new Error(`EcoCash lookup failed: ${res.status}`);
   return res.json() as Promise<EcoCashChargeResponse>;

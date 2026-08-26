@@ -972,6 +972,36 @@ export type Database = {
           },
         ]
       }
+      system_logs: {
+        Row: {
+          context: Json | null
+          created_at: string
+          id: string
+          level: string
+          message: string
+          resolved_at: string | null
+          source: string
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string
+          id?: string
+          level: string
+          message: string
+          resolved_at?: string | null
+          source: string
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string
+          id?: string
+          level?: string
+          message?: string
+          resolved_at?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
       user_bonuses: {
         Row: {
           amount: number

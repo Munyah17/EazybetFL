@@ -51,9 +51,15 @@ function ResultBody() {
     };
 
     // depositId can go missing from the URL if the session dropped mid
-    // checkout and the sign-in round trip lost it -- rather than assume
-    // "failed" (which would misreport a payment that actually succeeded),
-    // fall back to the user's own most recent processing Paynow deposit.
+    // checkout and the sign-in round trip lost it. Never assume "failed"
+    // here -- we have no gateway confirmation either way, and claiming
+    // failure for a payment that actually succeeded (or is still in
+    // flight) is worse than an honest "we can't tell yet, check your
+    // wallet." Fall back to the user's own most recent Paynow deposit
+    // *regardless of its current status* -- filtering to "processing" only
+    // used to miss a deposit a fast webhook had already completed by the
+    // time this page ran its lookup, and report a successful deposit as
+    // failed.
     (async () => {
       if (urlDepositId) {
         check(urlDepositId);
@@ -64,22 +70,29 @@ function ResultBody() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        setStatus("failed");
+        // No session to look anything up with -- not evidence of failure,
+        // just evidence we can't check right now.
+        setStatus("pending");
         return;
       }
       const { data: recent } = await supabase
         .from("deposits")
-        .select("id")
+        .select("id, status")
         .eq("user_id", user.id)
         .eq("provider", "paynow")
-        .eq("status", "processing")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (recent) {
-        check(recent.id);
-      } else {
+      if (!recent) {
+        // No deposit on record at all -- genuinely unknown, not a failure.
+        setStatus("pending");
+      } else if (recent.status === "completed") {
+        setStatus("completed");
+        await refreshWallet();
+      } else if (recent.status === "failed") {
         setStatus("failed");
+      } else {
+        check(recent.id);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps

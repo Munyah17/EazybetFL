@@ -9,6 +9,7 @@ import {
 import { sendEmail } from "@/lib/email/send";
 import { depositCompletedEmail } from "@/lib/email/templates";
 import { formatMoney } from "@/lib/format";
+import { logError } from "@/lib/log";
 import type { Json } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +49,10 @@ export async function POST(req: NextRequest) {
   try {
     verified = await ecocashLookup(normalizeMsisdn(deposit.phone_number), payload.clientCorrelator);
   } catch (e) {
-    console.error("[webhooks/ecocash] verification lookup failed:", (e as Error).message);
+    // Deliberately does not touch deposit status -- a failed verification
+    // call is our side failing to check, not evidence the charge failed.
+    // Left "processing"; reconcileStuckDeposits retries the same lookup.
+    await logError("webhook:ecocash", e, { depositId: deposit.id });
     return NextResponse.json({ error: "Could not verify transaction" }, { status: 502 });
   }
 
@@ -58,10 +62,15 @@ export async function POST(req: NextRequest) {
     .eq("id", deposit.id);
 
   if (isSuccessStatusMessage(verified.statusMessage ?? "")) {
-    await admin.rpc("fn_complete_deposit", { p_deposit_id: deposit.id });
-    const email = deposit.profiles?.email;
-    if (email) {
-      await sendEmail(email, "Deposit received", depositCompletedEmail(formatMoney(Number(deposit.amount)), "EcoCash"));
+    const { error: completeErr } = await admin.rpc("fn_complete_deposit", { p_deposit_id: deposit.id });
+    if (completeErr) await logError("webhook:ecocash", completeErr.message, { depositId: deposit.id, step: "fn_complete_deposit" });
+    try {
+      const email = deposit.profiles?.email;
+      if (email) {
+        await sendEmail(email, "Deposit received", depositCompletedEmail(formatMoney(Number(deposit.amount)), "EcoCash"));
+      }
+    } catch (e) {
+      await logError("webhook:ecocash", e, { depositId: deposit.id, step: "confirmation_email" });
     }
   } else {
     await admin.rpc("fn_fail_deposit", { p_deposit_id: deposit.id });
