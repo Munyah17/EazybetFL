@@ -14,6 +14,7 @@ const KNOWN_ERRORS: Record<string, string> = {
   BET_ALREADY_SETTLED: "This bet has already been settled.",
   BET_NOT_CASHOUTABLE: "This bet can no longer be cashed out.",
   BET_NOT_FOUND: "We couldn't find that bet.",
+  CASHOUT_LOCKED: "Cash out is locked right now — a match has started or prices are refreshing.",
   CODE_CANCELLED: "That booking code has been cancelled.",
   CODE_EXPIRED: "That booking code has expired.",
   CODE_NOT_FOUND: "We couldn't find that booking code.",

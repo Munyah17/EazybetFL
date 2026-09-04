@@ -71,12 +71,36 @@ export async function paynowPoll(pollUrl: string) {
 }
 
 /** Validates an inbound resulturl webhook by recomputing the hash Paynow
- * attached, using the same field values (minus hash) in the order Paynow
- * sends them for status updates. */
-export function verifyPaynowWebhook(fields: Record<string, string>) {
+ * attached.
+ *
+ * Primary check: every field except `hash`, in the order Paynow sent them
+ * (Paynow's documented rule). Fallback: the documented status-update field
+ * set in its canonical order -- salvages the case where Paynow adds or
+ * reorders a field we'd otherwise fold into the hash and reject a genuine
+ * callback over. Returns which path matched so the caller can log a
+ * fallback match as a signal to revisit the field list. */
+export function verifyPaynowWebhook(fields: Record<string, string>): boolean {
+  return verifyPaynowWebhookDetailed(fields).valid;
+}
+
+export function verifyPaynowWebhookDetailed(fields: Record<string, string>): {
+  valid: boolean;
+  matched: "strict" | "canonical" | null;
+} {
   const { hash, ...rest } = fields;
-  if (!hash) return false;
-  return computeHash(rest) === hash.toUpperCase();
+  if (!hash) return { valid: false, matched: null };
+  const target = hash.toUpperCase();
+
+  if (computeHash(rest) === target) return { valid: true, matched: "strict" };
+
+  const CANONICAL_ORDER = ["reference", "paynowreference", "amount", "status", "pollurl"];
+  if (CANONICAL_ORDER.every((k) => k in rest)) {
+    const canonical: Record<string, string> = {};
+    for (const k of CANONICAL_ORDER) canonical[k] = rest[k];
+    if (computeHash(canonical) === target) return { valid: true, matched: "canonical" };
+  }
+
+  return { valid: false, matched: null };
 }
 
 export function isPaynowPaid(status: string) {

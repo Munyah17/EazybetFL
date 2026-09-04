@@ -213,6 +213,8 @@ export type Database = {
           potential_payout: number
           settled_at: string | null
           stake: number
+          stake_from_balance: number
+          stake_from_principal: number
           status: Database["public"]["Enums"]["bet_status"]
           system_size: number | null
           total_odds: number
@@ -233,6 +235,8 @@ export type Database = {
           potential_payout: number
           settled_at?: string | null
           stake: number
+          stake_from_balance?: number
+          stake_from_principal?: number
           status?: Database["public"]["Enums"]["bet_status"]
           system_size?: number | null
           total_odds: number
@@ -253,6 +257,8 @@ export type Database = {
           potential_payout?: number
           settled_at?: string | null
           stake?: number
+          stake_from_balance?: number
+          stake_from_principal?: number
           status?: Database["public"]["Enums"]["bet_status"]
           system_size?: number | null
           total_odds?: number
@@ -369,6 +375,69 @@ export type Database = {
           },
         ]
       }
+      deposit_verification_requests: {
+        Row: {
+          admin_note: string | null
+          amount_claimed: number | null
+          created_at: string
+          deposit_id: string
+          id: string
+          note: string | null
+          payer_phone: string | null
+          payer_reference: string | null
+          proof_path: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount_claimed?: number | null
+          created_at?: string
+          deposit_id: string
+          id?: string
+          note?: string | null
+          payer_phone?: string | null
+          payer_reference?: string | null
+          proof_path?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount_claimed?: number | null
+          created_at?: string
+          deposit_id?: string
+          id?: string
+          note?: string | null
+          payer_phone?: string | null
+          payer_reference?: string | null
+          proof_path?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposit_verification_requests_deposit_id_fkey"
+            columns: ["deposit_id"]
+            isOneToOne: false
+            referencedRelation: "deposits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposit_verification_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deposits: {
         Row: {
           amount: number
@@ -387,6 +456,7 @@ export type Database = {
           status: Database["public"]["Enums"]["deposit_status"]
           updated_at: string
           user_id: string
+          verify_token: string | null
           wallet_id: string
         }
         Insert: {
@@ -406,6 +476,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["deposit_status"]
           updated_at?: string
           user_id: string
+          verify_token?: string | null
           wallet_id: string
         }
         Update: {
@@ -425,6 +496,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["deposit_status"]
           updated_at?: string
           user_id?: string
+          verify_token?: string | null
           wallet_id?: string
         }
         Relationships: [
@@ -1321,10 +1393,15 @@ export type Database = {
         Args: { p_amount: number; p_customer_id: string }
         Returns: undefined
       }
+      fn_admin_settle_fixture: {
+        Args: { p_away_score: number; p_fixture_id: string; p_home_score: number }
+        Returns: Json
+      }
       fn_approve_withdrawal: {
         Args: { p_withdrawal_id: string }
         Returns: undefined
       }
+      fn_pending_settlement_fixtures: { Args: never; Returns: Json }
       fn_book_bet: {
         Args: {
           p_bet_type: Database["public"]["Enums"]["bet_type"]
@@ -1333,6 +1410,7 @@ export type Database = {
         Returns: Json
       }
       fn_cash_out: { Args: { p_bet_id: string }; Returns: Json }
+      fn_cash_out_blocked_reason: { Args: { p_bet_id: string }; Returns: string }
       fn_cash_out_preview: { Args: { p_bet_id: string }; Returns: Json }
       fn_check_rate_limit: {
         Args: { p_key: string; p_max: number; p_window_seconds: number }
@@ -1409,7 +1487,16 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_reconcile_ledger: { Args: never; Returns: Json }
       fn_redeem_voucher: { Args: { p_code: string }; Returns: Json }
+      fn_review_deposit_verification: {
+        Args: {
+          p_admin_note?: string
+          p_approve: boolean
+          p_request_id: string
+        }
+        Returns: Json
+      }
       fn_reject_withdrawal: {
         Args: { p_reason: string; p_withdrawal_id: string }
         Returns: undefined
@@ -1483,6 +1570,17 @@ export type Database = {
         }
         Returns: string
       }
+      fn_wallet_credit_bet_return: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_reference_id: string
+          p_stake_from_principal: number
+          p_type: Database["public"]["Enums"]["wallet_tx_type"]
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       fn_wallet_debit_spend: {
         Args: {
           p_amount: number
@@ -1492,7 +1590,7 @@ export type Database = {
           p_type: Database["public"]["Enums"]["wallet_tx_type"]
           p_user_id: string
         }
-        Returns: undefined
+        Returns: Json
       }
       fn_write_audit_log: {
         Args: {

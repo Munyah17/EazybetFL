@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkKeysStatus, type OddsApiKeyStatus } from "@/lib/odds-api/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { formatMoney } from "@/lib/format";
 
 const STATUS_LABEL: Record<OddsApiKeyStatus["status"], string> = {
   ok: "OK",
@@ -19,13 +20,27 @@ const STATUS_VARIANT: Record<OddsApiKeyStatus["status"], "default" | "secondary"
   not_configured: "secondary",
 };
 
+type Reconciliation = {
+  ok: boolean;
+  checked_at: string;
+  house_balance: number | null;
+  escrow_balance: number | null;
+  anomalies: Record<string, unknown>[];
+};
+
 export default async function SystemStatusPage() {
   const supabase = await createClient();
-  const [keys, { data: latestFixture }, { count: fixtureCount }] = await Promise.all([
+  const [keys, { data: latestFixture }, { count: fixtureCount }, { data: reconcileRaw }] = await Promise.all([
     checkKeysStatus(),
     supabase.from("fixtures").select("last_synced_at").order("last_synced_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("fixtures").select("*", { count: "exact", head: true }),
+    supabase.rpc("fn_reconcile_ledger"),
   ]);
+
+  const reconcile = reconcileRaw as Reconciliation | null;
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const appUrlOk = Boolean(appUrl && appUrl.startsWith("https://"));
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
@@ -34,6 +49,71 @@ export default async function SystemStatusPage() {
         <p className="text-sm text-muted-foreground">
           Live health of the odds data pipeline: key quota, last sync, and fixture volume.
         </p>
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-sm font-semibold">Payments Configuration</h2>
+        <Card className="gap-0 overflow-hidden border-border/60 bg-card p-0">
+          <div className="flex items-center gap-3 border-b border-border/60 px-4 py-3.5 last:border-0">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">NEXT_PUBLIC_APP_URL</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {appUrl ?? "not set — falls back to the request host"} · Paynow return &amp; webhook target
+              </p>
+            </div>
+            <Badge variant={appUrlOk ? "default" : "secondary"} className="shrink-0">
+              {appUrlOk ? "Set" : "Auto"}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-3 border-b border-border/60 px-4 py-3.5 last:border-0">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">EcoCash Instant Payment (EIP)</p>
+              <p className="truncate text-xs text-muted-foreground">Direct EcoCash rail — separate from Paynow</p>
+            </div>
+            <Badge variant="secondary" className="shrink-0">
+              {process.env.ECOCASH_EIP_LIVE === "true" ? "Live" : "Disabled"}
+            </Badge>
+          </div>
+        </Card>
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-sm font-semibold">Ledger Reconciliation</h2>
+        <Card className="border-border/60 bg-card p-4">
+          {!reconcile ? (
+            <p className="text-sm text-muted-foreground">Could not run reconciliation.</p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">
+                  {reconcile.ok ? "Every cent accounted for" : "Discrepancies found"}
+                </p>
+                <Badge variant={reconcile.ok ? "default" : "destructive"}>
+                  {reconcile.ok ? "Balanced" : `${reconcile.anomalies.length} anomaly(ies)`}
+                </Badge>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+                <div>
+                  Escrow (open stakes)
+                  <p className="text-sm font-semibold text-foreground">
+                    {formatMoney(Number(reconcile.escrow_balance ?? 0))}
+                  </p>
+                </div>
+                <div>
+                  House reserve
+                  <p className="text-sm font-semibold text-foreground">
+                    {formatMoney(Number(reconcile.house_balance ?? 0))}
+                  </p>
+                </div>
+              </div>
+              {!reconcile.ok && (
+                <pre className="mt-3 overflow-x-auto rounded bg-secondary/40 p-2 text-[10px]">
+                  {JSON.stringify(reconcile.anomalies, null, 2)}
+                </pre>
+              )}
+            </>
+          )}
+        </Card>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

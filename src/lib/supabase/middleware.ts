@@ -13,6 +13,14 @@ const PROTECTED_PREFIXES = [
   "/agent",
 ];
 
+// Exceptions that sit under a protected prefix but must render without a
+// session. The Paynow return page is reached straight off Paynow's hosted
+// checkout -- the session cookie is routinely gone on that hop (EcoCash
+// in-app browser, Safari ITP). Bouncing it to /login there stranded users
+// on a payment they'd already made. It self-guards: it only ever polls a
+// single deposit's status via that deposit's own `verify_token`.
+const PUBLIC_EXCEPTIONS = ["/wallet/deposit/result"];
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -40,7 +48,9 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isProtected = PROTECTED_PREFIXES.some((p) => path.startsWith(p));
+  const isProtected =
+    PROTECTED_PREFIXES.some((p) => path.startsWith(p)) &&
+    !PUBLIC_EXCEPTIONS.some((p) => path === p || path.startsWith(p + "/"));
 
   if (!user && isProtected) {
     // Preserve the full path *and query string* (e.g. ?depositId=... on the

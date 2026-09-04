@@ -20,31 +20,43 @@ export default function DepositResultPage() {
 function ResultBody() {
   const searchParams = useSearchParams();
   const urlDepositId = searchParams.get("depositId");
+  const token = searchParams.get("t");
   const { refreshWallet } = useSession();
   const [status, setStatus] = useState<"checking" | "completed" | "failed" | "pending">("checking");
+  const [depositId, setDepositId] = useState<string | null>(urlDepositId);
 
   useEffect(() => {
     // Polls an external system (Paynow, via our own API) for payment
-    // status -- exactly what effects are for, not a plain state mirror.
-    // Up to 30 tries, 3s apart (~90s total) -- long enough to cover normal
-    // gateway confirmation latency without the user staring at a spinner
-    // forever. If they close the tab before this resolves, the daily
-    // deposit-reconciliation sweep (see sync-settlement) is the fallback
-    // that stops a real payment from being permanently stuck as
-    // "processing" just because nobody was watching this page.
+    // status. ~4 minutes total (60 tries, 4s apart) -- EcoCash USSD
+    // approval plus Paynow settlement can genuinely take a couple of
+    // minutes, longer than the old 90s window allowed for. If the user
+    // closes the tab before this resolves, the daily deposit
+    // reconciliation sweep and the manual verification request (button
+    // shown below) are the fallbacks.
+    let cancelled = false;
     let attempts = 0;
-    const MAX_ATTEMPTS = 30;
-    const check = async (depositId: string) => {
+    const MAX_ATTEMPTS = 60;
+    const tokenQuery = token ? `?t=${encodeURIComponent(token)}` : "";
+
+    const check = async (id: string) => {
+      if (cancelled) return;
       attempts++;
-      const res = await fetch(`/api/deposits/paynow/${depositId}/status`);
-      const data = await res.json();
+      setDepositId(id);
+      let data: { status?: string } = {};
+      try {
+        const res = await fetch(`/api/deposits/paynow/${id}/status${tokenQuery}`);
+        data = await res.json();
+      } catch {
+        // network blip -- treat as "keep waiting", never as failure
+      }
+      if (cancelled) return;
       if (data.status === "completed") {
         setStatus("completed");
         await refreshWallet();
       } else if (data.status === "failed") {
         setStatus("failed");
       } else if (attempts < MAX_ATTEMPTS) {
-        setTimeout(() => check(depositId), 3000);
+        setTimeout(() => check(id), 4000);
       } else {
         setStatus("pending");
       }
@@ -52,14 +64,9 @@ function ResultBody() {
 
     // depositId can go missing from the URL if the session dropped mid
     // checkout and the sign-in round trip lost it. Never assume "failed"
-    // here -- we have no gateway confirmation either way, and claiming
-    // failure for a payment that actually succeeded (or is still in
-    // flight) is worse than an honest "we can't tell yet, check your
-    // wallet." Fall back to the user's own most recent Paynow deposit
-    // *regardless of its current status* -- filtering to "processing" only
-    // used to miss a deposit a fast webhook had already completed by the
-    // time this page ran its lookup, and report a successful deposit as
-    // failed.
+    // here -- we have no gateway confirmation either way. Fall back to the
+    // user's own most recent Paynow deposit regardless of its current
+    // status.
     (async () => {
       if (urlDepositId) {
         check(urlDepositId);
@@ -70,8 +77,6 @@ function ResultBody() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        // No session to look anything up with -- not evidence of failure,
-        // just evidence we can't check right now.
         setStatus("pending");
         return;
       }
@@ -84,19 +89,24 @@ function ResultBody() {
         .limit(1)
         .maybeSingle();
       if (!recent) {
-        // No deposit on record at all -- genuinely unknown, not a failure.
         setStatus("pending");
       } else if (recent.status === "completed") {
+        setDepositId(recent.id);
         setStatus("completed");
         await refreshWallet();
       } else if (recent.status === "failed") {
+        setDepositId(recent.id);
         setStatus("failed");
       } else {
         check(recent.id);
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlDepositId]);
+  }, [urlDepositId, token]);
 
   return (
     <div className="flex flex-col">
@@ -124,6 +134,7 @@ function ResultBody() {
             <Button asChild variant="outline" className="mt-2">
               <Link href="/wallet/deposit">Try Again</Link>
             </Button>
+            {depositId && <VerifyPrompt depositId={depositId} />}
           </>
         )}
         {status === "pending" && (
@@ -136,9 +147,25 @@ function ResultBody() {
             <Button asChild variant="outline" className="mt-2">
               <Link href="/wallet">Back to Wallet</Link>
             </Button>
+            {depositId && <VerifyPrompt depositId={depositId} />}
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function VerifyPrompt({ depositId }: { depositId: string }) {
+  return (
+    <div className="mt-6 w-full max-w-sm rounded-xl border border-border/60 bg-card p-4 text-left">
+      <p className="text-sm font-semibold">Already paid but not showing?</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        If EcoCash deducted the money, send us the confirmation details and a screenshot. A team
+        member will verify it and credit your wallet.
+      </p>
+      <Button asChild size="sm" className="mt-3">
+        <Link href={`/wallet/verify/${depositId}`}>Request manual verification</Link>
+      </Button>
     </div>
   );
 }

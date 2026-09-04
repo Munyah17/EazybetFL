@@ -29,6 +29,13 @@ export const dynamic = "force-dynamic";
  * than trusting a caller-supplied status.
  */
 export async function POST(req: NextRequest) {
+  // EIP rail is gated off until live credentials exist -- see
+  // /api/deposits/ecocash. No EIP deposits are created meanwhile, so this
+  // callback has nothing legitimate to act on.
+  if (process.env.ECOCASH_EIP_LIVE !== "true") {
+    return NextResponse.json({ ok: true });
+  }
+
   const payload = await req.json().catch(() => null);
   if (!payload?.clientCorrelator) {
     return NextResponse.json({ error: "Missing clientCorrelator" }, { status: 400 });

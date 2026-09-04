@@ -28,6 +28,7 @@ export function BetCard({ bet }: { bet: BetRow }) {
   const [expanded, setExpanded] = useState(false);
   const [cashingOut, setCashingOut] = useState(false);
   const [preview, setPreview] = useState<number | null>(null);
+  const [cashOutLocked, setCashOutLocked] = useState<string | null>(null);
 
   const style = STATUS_STYLE[bet.status] ?? STATUS_STYLE.open;
   const displayAmount =
@@ -41,8 +42,14 @@ export function BetCard({ bet }: { bet: BetRow }) {
 
   async function loadPreview() {
     const { data } = await supabase.rpc("fn_cash_out_preview", { p_bet_id: bet.id });
-    const result = data as { cash_out_value: number | null; eligible: boolean } | null;
-    if (result?.eligible) setPreview(result.cash_out_value);
+    const result = data as { cash_out_value: number | null; eligible: boolean; reason?: string } | null;
+    if (result?.eligible) {
+      setPreview(result.cash_out_value);
+      setCashOutLocked(null);
+    } else {
+      setPreview(null);
+      setCashOutLocked(result?.reason ?? "Cash out is not available for this bet right now.");
+    }
   }
 
   async function handleCashOut() {
@@ -116,11 +123,17 @@ export function BetCard({ bet }: { bet: BetRow }) {
           {bet.status === "open" && bet.bet_type !== "single" && (
             <div className="mt-2 flex items-center justify-between gap-3 border-t border-border/60 pt-3">
               <span className="text-xs text-muted-foreground">
-                {preview !== null ? `Cash out now for ${formatMoney(preview)}` : "Calculating cash out…"}
+                {cashOutLocked
+                  ? cashOutLocked
+                  : preview !== null
+                    ? `Cash out now for ${formatMoney(preview)}`
+                    : "Calculating cash out…"}
               </span>
-              <Button size="sm" disabled={cashingOut || preview === null} onClick={handleCashOut}>
-                {cashingOut ? "Processing…" : "Cash Out"}
-              </Button>
+              {!cashOutLocked && (
+                <Button size="sm" disabled={cashingOut || preview === null} onClick={handleCashOut}>
+                  {cashingOut ? "Processing…" : "Cash Out"}
+                </Button>
+              )}
             </div>
           )}
         </div>

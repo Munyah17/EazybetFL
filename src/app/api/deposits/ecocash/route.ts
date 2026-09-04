@@ -15,6 +15,14 @@ import type { Json } from "@/types/database";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
+// EcoCash Instant Payment (EIP) -- the direct EcoCash<->merchant rail,
+// entirely separate from EcoCash-via-Paynow. It is disabled in the UI
+// until live EIP credentials are provisioned; this server-side gate makes
+// the route itself refuse until then, so a hand-crafted POST against
+// sandbox credentials (which return "success" for anything) cannot mint
+// wallet balance. Flip ECOCASH_EIP_LIVE=true once real EIP keys are set.
+const EIP_LIVE = process.env.ECOCASH_EIP_LIVE === "true";
+
 const STATUS_MESSAGE_HINTS: Record<string, string> = {
   "Insufficient Balance": "Insufficient EcoCash balance. Top up your wallet and try again.",
   "Transaction Failed - Invalid PIN": "Incorrect PIN entered on the USSD prompt. Please try again.",
@@ -22,6 +30,10 @@ const STATUS_MESSAGE_HINTS: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
+  if (!EIP_LIVE) {
+    return NextResponse.json({ error: "EcoCash Instant Payment is not available yet." }, { status: 404 });
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

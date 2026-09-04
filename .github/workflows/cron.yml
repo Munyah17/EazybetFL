@@ -1,0 +1,51 @@
+name: Scheduled tasks
+
+# Vercel's Hobby plan only fires vercel.json crons once per day, which is
+# far too slow for deposit confirmation and bet settlement. This runs the
+# frequent, quota-free heartbeat every 10 minutes and the daily
+# sports-data syncs on their own schedules.
+#
+# Required repository secrets (Settings -> Secrets and variables -> Actions):
+#   APP_URL      e.g. https://eazybet.example.com   (no trailing slash)
+#   CRON_SECRET  same value as the Vercel env var of the same name
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # tick: deposits + bet settlement + booking expiry
+    - cron: "17 3 * * *"     # daily: sync-catalog (sports + odds)  -- burns Odds API quota
+    - cron: "17 4 * * *"     # daily: sync-settlement (scores + settlement)
+  workflow_dispatch: {}
+
+concurrency:
+  group: eazybet-cron
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Heartbeat (every run)
+        run: |
+          curl -fsS --max-time 90 -X GET "$APP_URL/api/cron/tick" \
+            -H "Authorization: Bearer $CRON_SECRET"
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+      - name: Daily catalog sync
+        if: github.event.schedule == '17 3 * * *'
+        run: |
+          curl -fsS --max-time 300 -X GET "$APP_URL/api/cron/sync-catalog" \
+            -H "Authorization: Bearer $CRON_SECRET"
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+      - name: Daily settlement sync
+        if: github.event.schedule == '17 4 * * *'
+        run: |
+          curl -fsS --max-time 300 -X GET "$APP_URL/api/cron/sync-settlement" \
+            -H "Authorization: Bearer $CRON_SECRET"
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}

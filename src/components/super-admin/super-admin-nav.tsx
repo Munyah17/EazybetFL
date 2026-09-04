@@ -17,6 +17,7 @@ import {
   LifeBuoy,
   Activity,
   FileWarning,
+  BadgeCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,7 @@ export function SuperAdminNav() {
     { href: "/super-admin/agents", label: "Agents", icon: Handshake },
     { href: "/admin/bets", label: "Bets", icon: Ticket },
     { href: "/admin/withdrawals", label: "Withdrawals", icon: Banknote },
+    { href: "/super-admin/deposit-verifications", label: "Deposit Checks", icon: BadgeCheck },
     { href: "/admin/vouchers", label: "Vouchers", icon: TicketPercent },
     { href: "/admin/promotions", label: "Promotions", icon: Gift },
     { href: "/admin/banners", label: "Banners", icon: ImageIcon },

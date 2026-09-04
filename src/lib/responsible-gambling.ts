@@ -21,8 +21,13 @@ export async function checkResponsibleGamblingLimits(
   }
 
   if (settings?.daily_deposit_limit) {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    // "Today" is a calendar day in Africa/Harare (fixed UTC+2, no DST), not
+    // the server's UTC day -- otherwise the limit resets at 02:00 local.
+    const [y, m, d] = new Date()
+      .toLocaleDateString("en-CA", { timeZone: "Africa/Harare" })
+      .split("-")
+      .map(Number);
+    const startOfDay = new Date(Date.UTC(y, m - 1, d, -2, 0, 0)); // 00:00 Harare
     const { data: todaysDeposits } = await supabase
       .from("deposits")
       .select("amount")

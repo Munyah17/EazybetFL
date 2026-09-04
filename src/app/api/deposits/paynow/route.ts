@@ -1,8 +1,11 @@
+import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { paynowInitiate } from "@/lib/paynow/client";
 import { friendlyError } from "@/lib/friendly-error";
+import { logWarn } from "@/lib/log";
+import { getAppBaseUrl } from "@/lib/app-url";
 import { formatMoney } from "@/lib/format";
 import { rateLimited } from "@/lib/rate-limit";
 import { MAX_SINGLE_DEPOSIT, MAX_DEPOSIT_ATTEMPTS_PER_HOUR } from "@/lib/deposit-limits";
@@ -49,6 +52,11 @@ export async function POST(req: NextRequest) {
   const { data: wallet } = await supabase.from("wallets").select("id").eq("user_id", user.id).single();
   if (!wallet) return NextResponse.json({ error: "Wallet not found" }, { status: 400 });
 
+  // Per-deposit random token. Carried on the Paynow return URL so the
+  // result page can poll this one deposit's status even when the session
+  // cookie was lost on the round trip through Paynow's hosted page.
+  const verifyToken = crypto.randomBytes(24).toString("base64url");
+
   const { data: deposit, error: insertErr } = await supabase
     .from("deposits")
     .insert({
@@ -58,6 +66,7 @@ export async function POST(req: NextRequest) {
       provider: "paynow",
       amount,
       status: "processing",
+      verify_token: verifyToken,
     })
     .select("id")
     .single();
@@ -67,13 +76,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: friendlyError(insertErr, "Could not start deposit") }, { status: 500 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  // Derived from the request host when NEXT_PUBLIC_APP_URL isn't usefully
+  // set -- so Paynow's resultUrl (its server-to-server confirmation) can
+  // never silently point at localhost.
+  const appUrl = getAppBaseUrl(req);
+  if (/localhost|127\.0\.0\.1/.test(appUrl)) {
+    await logWarn("api:deposits/paynow", "could not resolve a public app URL -- Paynow callbacks will fail", {
+      depositId: deposit.id,
+    });
+  }
 
   const result = await paynowInitiate({
     reference: deposit.id,
     amount,
     authEmail: user.email ?? "player@eazybet.example",
-    returnUrl: `${appUrl}/wallet/deposit/result?depositId=${deposit.id}`,
+    returnUrl: `${appUrl}/wallet/deposit/result?depositId=${deposit.id}&t=${verifyToken}`,
     resultUrl: `${appUrl}/api/webhooks/paynow`,
   });
 
@@ -93,5 +110,5 @@ export async function POST(req: NextRequest) {
     })
     .eq("id", deposit.id);
 
-  return NextResponse.json({ depositId: deposit.id, browserUrl: result.browserurl });
+  return NextResponse.json({ depositId: deposit.id, browserUrl: result.browserurl, verifyToken });
 }

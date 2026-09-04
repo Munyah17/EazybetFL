@@ -48,6 +48,32 @@ export function depositCompletedEmail(amount: string, method: string) {
   );
 }
 
+export function depositVerificationRequestedEmail(amount: string) {
+  return layout(
+    "Verification request received",
+    `We've received your request to verify a <strong style="color:#1de582;">${amount}</strong> deposit that didn't show up automatically. Our team will check it against the payment gateway and credit your wallet if it clears. You'll get another email once it's reviewed — usually within a few hours.`,
+    "View Wallet",
+    `${APP_URL}/wallet`
+  );
+}
+
+export function depositVerificationDecisionEmail(amount: string, approved: boolean, reason?: string) {
+  if (approved) {
+    return layout(
+      "Deposit verified",
+      `Good news — we confirmed your <strong style="color:#1de582;">${amount}</strong> payment. It has been credited to your wallet and is ready to bet with.`,
+      "View Wallet",
+      `${APP_URL}/wallet`
+    );
+  }
+  return layout(
+    "Deposit could not be verified",
+    `We weren't able to confirm your <strong>${amount}</strong> deposit${reason ? `: <em>${reason}</em>` : "."} If you believe this is wrong, reply to this email with your EcoCash confirmation SMS and we'll take another look.`,
+    "View Wallet",
+    `${APP_URL}/wallet`
+  );
+}
+
 export function withdrawalRequestedEmail(amount: string, method: string) {
   return layout(
     "Withdrawal requested",

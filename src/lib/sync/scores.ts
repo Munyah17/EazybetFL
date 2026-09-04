@@ -1,9 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { oddsApi } from "@/lib/odds-api/client";
-import { sendEmail } from "@/lib/email/send";
-import { betWonEmail } from "@/lib/email/templates";
-import { formatMoney } from "@/lib/format";
 import { logError } from "@/lib/log";
+import { settleResolvedBets } from "@/lib/sync/settle";
 import type { Database } from "@/types/database";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string; status: number };
@@ -154,31 +152,8 @@ export async function syncScores(
   }
 
   // Settle any bet whose every selection now has a final status.
-  const { data: openBets } = await supabase
-    .from("bets")
-    .select("id, bet_type, profiles(email)")
-    .eq("status", "open");
-  for (const bet of openBets ?? []) {
-    const { data: selections } = await supabase
-      .from("bet_selections")
-      .select("status")
-      .eq("bet_id", bet.id);
-    const allResolved = (selections ?? []).every((s) => s.status !== "pending");
-    if (!allResolved || !selections?.length) continue;
-
-    const { data: result, error } = await supabase.rpc("fn_settle_bet", { p_bet_id: bet.id });
-    if (error) {
-      await logError("sync:scores", error.message, { step: "settle_bet", betId: bet.id });
-      continue;
-    }
-    settledBets++;
-
-    const settled = result as { status: string; payout: number } | null;
-    const email = bet.profiles?.email;
-    if (settled?.status === "won" && settled.payout > 0 && email) {
-      await sendEmail(email, "You won! 🎉", betWonEmail(formatMoney(settled.payout), bet.bet_type));
-    }
-  }
+  const settleResult = await settleResolvedBets(supabase);
+  settledBets = settleResult.settled;
 
   return { ok: true, data: { finished: summary, settledBets } };
 }
