@@ -33,7 +33,12 @@ export async function syncScores(
       .select("odds_api_key, display_order, sport_groups ( display_order )")
       .eq("active", true);
     if (error) return { ok: false, error: error.message, status: 500 };
-    const rows = (data ?? []) as unknown as Row[];
+    let rows = (data ?? []) as unknown as Row[];
+    const allow = (process.env.ODDS_SYNC_KEYS ?? "")
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean);
+    if (allow.length) rows = rows.filter((c) => allow.includes(c.odds_api_key));
     rows.sort((a, b) => {
       const groupDiff = (a.sport_groups?.display_order ?? 999) - (b.sport_groups?.display_order ?? 999);
       return groupDiff !== 0 ? groupDiff : a.display_order - b.display_order;

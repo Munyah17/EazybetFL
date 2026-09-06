@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCronSecret } from "@/lib/cron-auth";
 import { syncScores } from "@/lib/sync/scores";
+import { settleFromFreeScores } from "@/lib/sync/free-scores";
+import { settleResolvedBets } from "@/lib/sync/settle";
 import { reconcileStuckDeposits } from "@/lib/sync/deposits";
 import { logError } from "@/lib/log";
 
@@ -28,6 +30,23 @@ export async function GET(req: NextRequest) {
   const scores = await syncScores(supabase);
   if (!scores.ok) await logError("cron:sync-settlement", scores.error, { step: "scores" });
 
+  // Free final-score settlement (football-data.org) -- independent of the
+  // odds provider's /scores quota. Then settle any bet the grading above
+  // (from either source) has now fully resolved.
+  let freeScores;
+  try {
+    freeScores = await settleFromFreeScores(supabase);
+    if (freeScores.errors.length) await logError("cron:sync-settlement", freeScores.errors.join("; "), { step: "free_scores" });
+  } catch (e) {
+    await logError("cron:sync-settlement", e, { step: "free_scores" });
+    freeScores = { matched: 0, settled: 0, unmatched: 0, skipped: false, errors: [e instanceof Error ? e.message : String(e)] };
+  }
+  try {
+    await settleResolvedBets(supabase);
+  } catch (e) {
+    await logError("cron:sync-settlement", e, { step: "settle_resolved" });
+  }
+
   const { data: expired, error: expireErr } = await supabase.rpc("fn_expire_booked_bets");
   if (expireErr) await logError("cron:sync-settlement", expireErr.message, { step: "expire_booked_bets" });
 
@@ -51,6 +70,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(
     {
       scores: scores.ok ? scores.data : { error: scores.error },
+      freeScores,
       expired: expireErr ? { error: expireErr.message } : expired,
       deposits,
     },

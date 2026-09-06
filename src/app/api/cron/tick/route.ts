@@ -3,22 +3,26 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCronSecret } from "@/lib/cron-auth";
 import { reconcileStuckDeposits } from "@/lib/sync/deposits";
 import { settleResolvedBets, cleanupStaleFixtures } from "@/lib/sync/settle";
+import { settleFromFreeScores } from "@/lib/sync/free-scores";
 import { logError } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 /**
  * High-frequency heartbeat -- meant to run every few minutes from an
  * external scheduler (GitHub Actions), because Vercel's Hobby plan only
  * triggers vercel.json crons once a day.
  *
- * Deliberately does NO external sports-API calls (those burn The Odds API
- * quota and belong on the daily /api/cron/sync-* jobs). Only the cheap,
- * time-sensitive work:
+ * Does NOT call the odds provider (that burns quota and belongs on the
+ * daily /api/cron/sync-catalog job). It DOES pull free final scores from
+ * football-data.org for settlement -- that's a separate, free feed.
+ *
  *   - re-verify stuck Paynow/EcoCash deposits against the gateway
+ *   - auto-settle fixtures against free final scores
  *   - settle any bet whose selections are all now resolved
  *   - expire lapsed booking codes
+ *   - retire stale live/upcoming fixtures with no open bets
  *
  * Every step runs regardless of the others' outcome; failures are logged.
  */
@@ -35,6 +39,15 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     await logError("cron:tick", e, { step: "deposits" });
     deposits = { error: e instanceof Error ? e.message : String(e) };
+  }
+
+  let scores: Awaited<ReturnType<typeof settleFromFreeScores>> | { error: string };
+  try {
+    scores = await settleFromFreeScores(supabase);
+    if (scores.errors.length) await logError("cron:tick", scores.errors.join("; "), { step: "free_scores" });
+  } catch (e) {
+    await logError("cron:tick", e, { step: "free_scores" });
+    scores = { error: e instanceof Error ? e.message : String(e) };
   }
 
   let bets: Awaited<ReturnType<typeof settleResolvedBets>> | { error: string };
@@ -64,5 +77,5 @@ export async function GET(req: NextRequest) {
     fixtures = { error: e instanceof Error ? e.message : String(e) };
   }
 
-  return NextResponse.json({ deposits, bets, expired, fixtures });
+  return NextResponse.json({ deposits, scores, bets, expired, fixtures });
 }
