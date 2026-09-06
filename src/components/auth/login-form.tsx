@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
+import { normalizeZwPhone } from "@/lib/phone";
 
 export function LoginForm({
   redirectTo = "/",
@@ -46,8 +47,12 @@ export function LoginForm({
 
     let email = identifier.trim();
     if (!email.includes("@")) {
-      const digits = email.replace(/\D/g, "");
-      const normalizedPhone = "+263" + digits.replace(/^263/, "").replace(/^0+/, "");
+      const normalizedPhone = normalizeZwPhone(email);
+      if (!normalizedPhone) {
+        setLoading(false);
+        toast.error("Invalid credentials", { description: "Check your email/phone and password." });
+        return;
+      }
       const { data: resolvedEmail } = await supabase.rpc("fn_lookup_email_by_phone", {
         p_phone: normalizedPhone,
       });

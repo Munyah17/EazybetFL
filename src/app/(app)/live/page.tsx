@@ -6,7 +6,7 @@ import { getFixtures } from "@/lib/data/fixtures";
 export const revalidate = 15;
 
 export default async function LivePage() {
-  const fixtures = await getFixtures({ status: ["live"], limit: 100 });
+  const fixtures = await getFixtures({ status: ["live"], limit: 100, orderBy: "popularity" });
 
   return (
     <div className="flex flex-col">

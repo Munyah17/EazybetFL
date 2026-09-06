@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { friendlyError } from "@/lib/friendly-error";
+import { normalizeZwPhone } from "@/lib/phone";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -40,8 +41,13 @@ export default function SignUpPage() {
       return;
     }
 
+    if (phone.trim() && !normalizeZwPhone(phone)) {
+      toast.error("Enter a valid Zimbabwe mobile number, e.g. 0771234567");
+      return;
+    }
+
     setLoading(true);
-    const fullPhone = phone ? `+263${phone.replace(/^0+/, "")}` : null;
+    const fullPhone = phone.trim() ? normalizeZwPhone(phone) : null;
 
     // Routed through our own server so signup attempts can be rate
     // limited -- same reason as login.

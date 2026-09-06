@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCronSecret } from "@/lib/cron-auth";
 import { reconcileStuckDeposits } from "@/lib/sync/deposits";
-import { settleResolvedBets } from "@/lib/sync/settle";
+import { settleResolvedBets, cleanupStaleFixtures } from "@/lib/sync/settle";
 import { logError } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
@@ -56,5 +56,13 @@ export async function GET(req: NextRequest) {
     expired = { error: e instanceof Error ? e.message : String(e) };
   }
 
-  return NextResponse.json({ deposits, bets, expired });
+  let fixtures: Awaited<ReturnType<typeof cleanupStaleFixtures>> | { error: string };
+  try {
+    fixtures = await cleanupStaleFixtures(supabase);
+  } catch (e) {
+    await logError("cron:tick", e, { step: "cleanup_stale_fixtures" });
+    fixtures = { error: e instanceof Error ? e.message : String(e) };
+  }
+
+  return NextResponse.json({ deposits, bets, expired, fixtures });
 }

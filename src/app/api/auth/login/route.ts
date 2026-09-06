@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimited, clientIp } from "@/lib/rate-limit";
+import { logError } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,19 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error || !data.user) {
+    // "Invalid credentials" covers everything user-facing (never leak
+    // which part was wrong, or whether the account exists). But a wrong
+    // password and a broken Supabase connection (bad URL/anon key, project
+    // unreachable) look identical to the end user while being completely
+    // different problems -- log the real status/message/code so that
+    // distinction is visible in the super-admin Logs page instead of
+    // silently vanishing behind the generic copy.
+    if (error) {
+      await logError("api:auth/login", error.message, {
+        status: error.status,
+        code: (error as { code?: string }).code,
+      });
+    }
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 

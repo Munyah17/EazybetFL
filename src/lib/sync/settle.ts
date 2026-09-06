@@ -60,3 +60,38 @@ export async function settleResolvedBets(
 
   return { settled, errors };
 }
+
+/**
+ * Fixtures stuck in `live`/`upcoming` long after kickoff because the
+ * scores feed never delivered a result. Any that carry no pending bet
+ * selections are pure stale display data -- flip them to `finished` so
+ * they stop showing on the Live page and in fixture lists. Fixtures that
+ * DO have unsettled bets are left alone for manual settlement
+ * (/admin/settlement) -- marking them finished would strand those bets.
+ */
+export async function cleanupStaleFixtures(
+  supabase: SupabaseClient<Database>
+): Promise<{ cleaned: number }> {
+  const cutoff = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+
+  const { data: stale } = await supabase
+    .from("fixtures")
+    .select("id")
+    .in("status", ["live", "upcoming"])
+    .lt("commence_time", cutoff)
+    .limit(500);
+  if (!stale?.length) return { cleaned: 0 };
+
+  let cleaned = 0;
+  for (const f of stale) {
+    const { count } = await supabase
+      .from("bet_selections")
+      .select("id", { count: "exact", head: true })
+      .eq("fixture_id", f.id)
+      .eq("status", "pending");
+    if (count && count > 0) continue; // has unsettled bets -- leave for manual settlement
+    const { error } = await supabase.from("fixtures").update({ status: "finished" }).eq("id", f.id);
+    if (!error) cleaned++;
+  }
+  return { cleaned };
+}

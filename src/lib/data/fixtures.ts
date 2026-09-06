@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { FixtureWithOdds } from "@/lib/data/fixture-types";
+import { sortFixturesByPopularity } from "@/lib/data/sort-fixtures";
 import type { Database } from "@/types/database";
 
 export type { FixtureWithOdds } from "@/lib/data/fixture-types";
@@ -26,7 +27,7 @@ export async function getFixtures(opts: {
   sportGroupKey?: string;
   competitionKey?: string;
   limit?: number;
-  orderBy?: "commence_time";
+  orderBy?: "commence_time" | "popularity";
 }): Promise<FixtureWithOdds[]> {
   const supabase = await createClient();
   let query = supabase.from("fixtures").select(FIXTURE_SELECT);
@@ -42,7 +43,14 @@ export async function getFixtures(opts: {
     // recently odds actually synced.
     query = query.gte("commence_time", new Date().toISOString());
   }
-  query = query.order(opts.orderBy ?? "commence_time", { ascending: true });
+  if (opts.status?.includes("live")) {
+    // Same failure mode for "live": nothing flips a fixture out of "live"
+    // when the scores feed stalls, so matches from weeks ago sit on the
+    // Live page forever. A real match is never still in play more than a
+    // few hours after kickoff -- anything older marked "live" is stale.
+    query = query.gte("commence_time", new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString());
+  }
+  query = query.order("commence_time", { ascending: true });
   if (opts.limit) query = query.limit(opts.limit);
 
   const { data, error } = await query;
@@ -54,6 +62,9 @@ export async function getFixtures(opts: {
   }
   if (opts.competitionKey) {
     rows = rows.filter((f) => f.competition?.odds_api_key === opts.competitionKey);
+  }
+  if ((opts.orderBy ?? "commence_time") === "popularity") {
+    rows = sortFixturesByPopularity(rows);
   }
   return rows;
 }
