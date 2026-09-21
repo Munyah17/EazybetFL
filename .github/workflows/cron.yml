@@ -8,6 +8,13 @@ name: Scheduled tasks
 # Required repository secrets (Settings -> Secrets and variables -> Actions):
 #   APP_URL      e.g. https://eazybet.example.com   (no trailing slash)
 #   CRON_SECRET  same value as the Vercel env var of the same name
+#
+# A non-2xx response from an endpoint is reported as a workflow *warning*,
+# not a failure: the endpoints already persist every failure to the
+# system_logs table (visible on the super admin System Status page), and a
+# failed run here only produced a notification email every 10 minutes with
+# no extra diagnostic value. The run still fails when the job can't even
+# attempt the call -- i.e. the required secrets were never configured.
 
 on:
   schedule:
@@ -23,29 +30,63 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
+    env:
+      APP_URL: ${{ secrets.APP_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
+      - name: Check required secrets
+        run: |
+          missing=""
+          [ -z "$APP_URL" ] && missing="$missing APP_URL"
+          [ -z "$CRON_SECRET" ] && missing="$missing CRON_SECRET"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing -- set them under Settings -> Secrets and variables -> Actions. CRON_SECRET must match the Vercel env var of the same name. Until then every cron call is rejected with 401."
+            exit 1
+          fi
+
       - name: Heartbeat (every run)
         run: |
-          curl -fsS --max-time 90 -X GET "$APP_URL/api/cron/tick" \
-            -H "Authorization: Bearer $CRON_SECRET"
-        env:
-          APP_URL: ${{ secrets.APP_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          # --max-time must exceed the route's maxDuration (120s) or curl
+          # gives up mid-run and the job "fails" while the function keeps
+          # working to completion.
+          code=$(curl -sS --max-time 150 -o /tmp/tick.json -w "%{http_code}" \
+            -X GET "$APP_URL/api/cron/tick" \
+            -H "Authorization: Bearer $CRON_SECRET" || echo "000")
+          echo "HTTP $code"
+          cat /tmp/tick.json 2>/dev/null; echo
+          case "$code" in
+            2*) ;;
+            401|403) echo "::warning::tick rejected (HTTP $code) -- check CRON_SECRET matches the Vercel env var, and that Vercel Deployment Protection isn't intercepting /api/cron/*." ;;
+            000) echo "::warning::tick unreachable or timed out -- the function may still have completed; check Vercel logs and system_logs." ;;
+            *) echo "::warning::tick returned HTTP $code -- details are in system_logs (super admin System Status page)." ;;
+          esac
 
       - name: Daily catalog sync
         if: github.event.schedule == '17 3 * * *'
         run: |
-          curl -fsS --max-time 300 -X GET "$APP_URL/api/cron/sync-catalog" \
-            -H "Authorization: Bearer $CRON_SECRET"
-        env:
-          APP_URL: ${{ secrets.APP_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          code=$(curl -sS --max-time 300 -o /tmp/catalog.json -w "%{http_code}" \
+            -X GET "$APP_URL/api/cron/sync-catalog" \
+            -H "Authorization: Bearer $CRON_SECRET" || echo "000")
+          echo "HTTP $code"
+          cat /tmp/catalog.json 2>/dev/null; echo
+          case "$code" in
+            2*) ;;
+            401|403) echo "::warning::sync-catalog rejected (HTTP $code) -- check CRON_SECRET matches the Vercel env var, and that Vercel Deployment Protection isn't intercepting /api/cron/*." ;;
+            000) echo "::warning::sync-catalog unreachable or timed out -- the function may still have completed; check Vercel logs and system_logs." ;;
+            *) echo "::warning::sync-catalog returned HTTP $code -- details are in system_logs (super admin System Status page)." ;;
+          esac
 
       - name: Daily settlement sync
         if: github.event.schedule == '17 4 * * *'
         run: |
-          curl -fsS --max-time 300 -X GET "$APP_URL/api/cron/sync-settlement" \
-            -H "Authorization: Bearer $CRON_SECRET"
-        env:
-          APP_URL: ${{ secrets.APP_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          code=$(curl -sS --max-time 300 -o /tmp/settlement.json -w "%{http_code}" \
+            -X GET "$APP_URL/api/cron/sync-settlement" \
+            -H "Authorization: Bearer $CRON_SECRET" || echo "000")
+          echo "HTTP $code"
+          cat /tmp/settlement.json 2>/dev/null; echo
+          case "$code" in
+            2*) ;;
+            401|403) echo "::warning::sync-settlement rejected (HTTP $code) -- check CRON_SECRET matches the Vercel env var, and that Vercel Deployment Protection isn't intercepting /api/cron/*." ;;
+            000) echo "::warning::sync-settlement unreachable or timed out -- the function may still have completed; check Vercel logs and system_logs." ;;
+            *) echo "::warning::sync-settlement returned HTTP $code -- details are in system_logs (super admin System Status page)." ;;
+          esac

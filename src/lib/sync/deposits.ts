@@ -22,7 +22,7 @@ import type { Database } from "@/types/database";
  */
 export async function reconcileStuckDeposits(
   supabase: SupabaseClient<Database>
-): Promise<{ checked: number; completed: number; failed: number; errors: string[] }> {
+): Promise<{ checked: number; completed: number; failed: number; deferred: number; errors: string[] }> {
   const cutoff = new Date(Date.now() - 3 * 60 * 1000).toISOString();
 
   const { data: stuck, error } = await supabase
@@ -33,14 +33,25 @@ export async function reconcileStuckDeposits(
     .limit(200);
 
   if (error || !stuck) {
-    return { checked: 0, completed: 0, failed: 0, errors: [error?.message ?? "query failed"] };
+    return { checked: 0, completed: 0, failed: 0, deferred: 0, errors: [error?.message ?? "query failed"] };
   }
 
   let completed = 0;
   let failedCount = 0;
+  let checked = 0;
   const errors: string[] = [];
 
+  // Each iteration is a gateway round trip (Paynow/EcoCash, up to ~15s on a
+  // hang). With a big enough `processing` backlog the loop alone could eat
+  // the whole request budget -- the GitHub Actions caller gives up at 150s
+  // and marks the run failed even though the function kept working. Stop
+  // early and let the next tick continue the backlog instead.
+  const startedAt = Date.now();
+  const TIME_BUDGET_MS = 45_000;
+
   for (const d of stuck) {
+    if (Date.now() - startedAt > TIME_BUDGET_MS) break;
+    checked++;
     try {
       if (d.provider === "paynow") {
         if (!d.client_correlator) continue; // no pollurl on record -- nothing to reconcile against
@@ -74,5 +85,5 @@ export async function reconcileStuckDeposits(
     }
   }
 
-  return { checked: stuck.length, completed, failed: failedCount, errors };
+  return { checked, completed, failed: failedCount, deferred: stuck.length - checked, errors };
 }
