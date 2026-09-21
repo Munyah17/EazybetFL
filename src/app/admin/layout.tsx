@@ -9,7 +9,7 @@ import { LoginForm } from "@/components/auth/login-form";
 
 function PortalShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center bg-background px-5 py-8">
+    <div className="portal flex min-h-svh flex-col items-center justify-center bg-background px-5 py-8">
       <div className="mx-auto w-full max-w-sm">{children}</div>
     </div>
   );
@@ -66,7 +66,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="flex min-h-svh flex-col bg-background">
+    <div className="portal flex min-h-svh flex-col bg-background">
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
           <Link href="/admin">

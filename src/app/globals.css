@@ -135,6 +135,107 @@
   --sidebar-ring: rgba(29, 229, 130, 0.5);
 }
 
+/* ---------------------------------------------------------------------------
+ * Portal theme -- CoolAdmin design language, scoped to dashboard consoles only.
+ *
+ * Applied by adding the `portal` class at each portal layout root
+ * (admin, super-admin, agent, and the (app)/(portal) route group that wraps
+ * the client account/wallet/bets consoles). Every component inside resolves
+ * these variables instead of the site theme -- zero markup changes needed.
+ *
+ * Token source: CoolAdmin (github.com/puikinsh/cooladmin) css/theme.css
+ *   primary #4272d7 / body #f8f9fa / card #fff / sidebar #2c3e50
+ *   text #333 / muted #6c757d / border #e9ecef / radius 3px / Poppins
+ * ------------------------------------------------------------------------- */
+.portal {
+  --font-geist-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --background: #f8f9fa;
+  --foreground: #333333;
+  --surface: #ffffff;
+  --surface-2: #f1f3f5;
+  --card: #ffffff;
+  --card-foreground: #333333;
+  --popover: #ffffff;
+  --popover-foreground: #333333;
+  --primary: #4272d7;
+  --primary-foreground: #ffffff;
+  --secondary: #e9ecef;
+  --secondary-foreground: #333333;
+  --muted: #f1f3f5;
+  --muted-foreground: #6c757d;
+  --accent: #e8eefb;
+  --accent-foreground: #333333;
+  --destructive: #dc3545;
+  --win: #28a745;
+  --boost: #ffc107;
+  --boost-foreground: #212529;
+  --border: #e9ecef;
+  --input: #dee2e6;
+  --ring: rgba(66, 114, 215, 0.45);
+  --chart-1: #4272d7;
+  --chart-2: #28a745;
+  --chart-3: #17a2b8;
+  --chart-4: #ffc107;
+  --chart-5: #6c757d;
+  /* CoolAdmin's signature sharp corners (cards/buttons/inputs are 3px). */
+  --radius: 0.1875rem;
+  --sidebar: #2c3e50;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #4272d7;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: rgba(66, 114, 215, 0.45);
+  /* CoolAdmin elevation scale. */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 16px 40px rgba(0, 0, 0, 0.14);
+  --shadow-2xl: 0 24px 56px rgba(0, 0, 0, 0.16);
+}
+
+.dark .portal {
+  --background: #121417;
+  --foreground: #e9ecef;
+  --surface: #1c1f24;
+  --surface-2: #23262c;
+  --card: #1c1f24;
+  --card-foreground: #e9ecef;
+  --popover: #1c1f24;
+  --popover-foreground: #e9ecef;
+  --primary: #4272d7;
+  --primary-foreground: #ffffff;
+  --secondary: #23262c;
+  --secondary-foreground: #e9ecef;
+  --muted: #23262c;
+  --muted-foreground: #adb5bd;
+  --accent: #2a2e35;
+  --accent-foreground: #e9ecef;
+  --destructive: #dc3545;
+  --win: #28a745;
+  --boost: #ffc107;
+  --boost-foreground: #212529;
+  --border: #2a2e35;
+  --input: #343a40;
+  --ring: rgba(66, 114, 215, 0.55);
+  --sidebar: #0f1115;
+  --sidebar-foreground: #e9ecef;
+  --sidebar-primary: #4272d7;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #23262c;
+  --sidebar-accent-foreground: #e9ecef;
+  --sidebar-border: #2a2e35;
+  --sidebar-ring: rgba(66, 114, 215, 0.55);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --shadow-xl: 0 16px 40px rgba(0, 0, 0, 0.6);
+  --shadow-2xl: 0 24px 56px rgba(0, 0, 0, 0.65);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -144,6 +245,21 @@
   }
   html {
     @apply font-sans;
+  }
+  /* CoolAdmin body copy: 16px/1.625 in Poppins, headings 700/#333. */
+  .portal {
+    font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.625;
+  }
+  .portal h1,
+  .portal h2,
+  .portal h3,
+  .portal h4,
+  .portal h5,
+  .portal h6 {
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--foreground);
   }
 }
 
