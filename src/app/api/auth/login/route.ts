@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
   const email = typeof body?.email === "string" ? body.email.trim() : "";
   const password = typeof body?.password === "string" ? body.password : "";
   const allowedRoles: string[] | undefined = Array.isArray(body?.allowedRoles) ? body.allowedRoles : undefined;
+  const deniedRoles: string[] | undefined = Array.isArray(body?.deniedRoles) ? body.deniedRoles : undefined;
   if (!email || !password) {
     return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
   }
@@ -49,9 +50,22 @@ export async function POST(req: NextRequest) {
   // client-side afterward would need the browser client to notice a
   // cookie change made by this response before it could trust its own
   // session, which isn't guaranteed without an extra round trip.
-  if (allowedRoles) {
+  if (allowedRoles || deniedRoles) {
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
-    if (!profile || !allowedRoles.includes(profile.role)) {
+
+    // Denied roles (e.g. super_admin on the public /login) get a generic
+    // 401, not access_denied -- the public form must not reveal that the
+    // credentials were valid or that the account is privileged. The
+    // attempt is logged so it shows up on the System Status page.
+    if (profile && deniedRoles?.includes(profile.role)) {
+      await supabase.auth.signOut();
+      await logError("api:auth/login", "Denied-role login attempt rejected", {
+        role: profile.role,
+      });
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    }
+
+    if (allowedRoles && (!profile || !allowedRoles.includes(profile.role))) {
       await supabase.auth.signOut();
       return NextResponse.json({ error: "access_denied" }, { status: 403 });
     }

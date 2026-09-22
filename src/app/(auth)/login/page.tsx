@@ -22,7 +22,10 @@ function LoginBody() {
         <h1 className="text-xl font-bold">Welcome Back!</h1>
         <p className="mt-1 text-sm text-muted-foreground">Sign in to continue</p>
       </div>
-      <LoginForm redirectTo={next} showSocial showSignUpLink />
+      {/* super_admin never authenticates through the public login -- they
+          use /super-admin only. The API signs the session out and returns
+          a generic 401 so this form doesn't reveal privileged accounts. */}
+      <LoginForm redirectTo={next} deniedRoles={["super_admin"]} showSocial showSignUpLink />
     </div>
   );
 }

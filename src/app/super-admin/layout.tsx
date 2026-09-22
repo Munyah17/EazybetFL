@@ -2,16 +2,19 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { SuperAdminNav } from "@/components/super-admin/super-admin-nav";
+import { SuperAdminShell } from "@/components/super-admin/super-admin-shell";
 import { Logo } from "@/components/layout/logo";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoginForm } from "@/components/auth/login-form";
 
-function PortalShell({ children }: { children: React.ReactNode }) {
+function PortalAuthShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="portal flex min-h-svh flex-col items-center justify-center bg-background px-5 py-8">
-      <div className="mx-auto w-full max-w-sm">{children}</div>
+      {/* CoolAdmin auth/maintenance pattern: centered white card on the
+          light page background. */}
+      <div className="mx-auto w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-md">
+        {children}
+      </div>
     </div>
   );
 }
@@ -24,7 +27,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
 
   if (!user) {
     return (
-      <PortalShell>
+      <PortalAuthShell>
         <div className="mb-6 text-center">
           <Link href="/" aria-label="EazyBet home" className="mx-auto mb-3 flex justify-center">
             <Logo className="text-2xl" />
@@ -43,7 +46,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
             Go to the regular sign in
           </Link>
         </p>
-      </PortalShell>
+      </PortalAuthShell>
     );
   }
 
@@ -55,7 +58,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
 
   if (profile?.role !== "super_admin") {
     return (
-      <PortalShell>
+      <PortalAuthShell>
         <div className="flex flex-col items-center gap-3 text-center">
           <ShieldAlert className="size-10 text-destructive" />
           <h1 className="text-lg font-bold">Access Denied</h1>
@@ -66,32 +69,9 @@ export default async function SuperAdminLayout({ children }: { children: React.R
             <Link href="/">Back to EazyBet</Link>
           </Button>
         </div>
-      </PortalShell>
+      </PortalAuthShell>
     );
   }
 
-  return (
-    <div className="portal flex min-h-svh flex-col bg-background">
-      <header className="flex items-center justify-between border-b border-border px-4 py-3">
-        <div className="flex items-center gap-3">
-          <Link href="/super-admin">
-            <Logo />
-          </Link>
-          <Badge variant="secondary" className="text-[10px]">
-            Super Admin
-          </Badge>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/admin" className="text-sm font-medium text-primary">
-            Admin View
-          </Link>
-          <Link href="/" className="text-sm font-medium text-primary">
-            Back to Site
-          </Link>
-        </div>
-      </header>
-      <SuperAdminNav />
-      <main className="flex-1 p-4">{children}</main>
-    </div>
-  );
+  return <SuperAdminShell>{children}</SuperAdminShell>;
 }

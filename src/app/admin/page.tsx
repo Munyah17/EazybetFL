@@ -3,9 +3,16 @@ import { Users, Ticket, TrendingUp, Banknote, Gift, Image as ImageIcon, BarChart
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { formatMoney } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { dailySeries, statusBreakdown } from "@/lib/portal-analytics";
+import { AreaChartCard, BarChartCard, DoughnutChartCard } from "@/components/portal/portal-charts";
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
+  const monthStart = new Date();
+  monthStart.setHours(0, 0, 0, 0);
+  monthStart.setDate(monthStart.getDate() - 29);
+  const monthStartIso = monthStart.toISOString();
 
   const [
     { count: totalUsers },
@@ -14,10 +21,12 @@ export default async function AdminDashboardPage() {
     { data: recentUsers },
     { data: recentDeposits },
     { data: bigWins },
+    { data: deposits30 },
+    { data: withdrawals30 },
   ] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase.from("bets").select("id", { count: "exact", head: true }),
-    supabase.from("bets").select("stake"),
+    supabase.from("bets").select("stake, status, placed_at"),
     supabase.from("profiles").select("full_name, created_at").order("created_at", { ascending: false }).limit(5),
     supabase
       .from("deposits")
@@ -31,6 +40,16 @@ export default async function AdminDashboardPage() {
       .eq("status", "won")
       .order("settled_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("deposits")
+      .select("amount, created_at")
+      .eq("status", "completed")
+      .gte("created_at", monthStartIso),
+    supabase
+      .from("withdrawals")
+      .select("amount, requested_at")
+      .eq("status", "completed")
+      .gte("requested_at", monthStartIso),
   ]);
 
   const turnover = (stakeRows ?? []).reduce((sum, b) => sum + Number(b.stake), 0);
@@ -61,9 +80,9 @@ export default async function AdminDashboardPage() {
     .slice(0, 8);
 
   const stats = [
-    { label: "Total Users", value: String(totalUsers ?? 0), icon: Users },
-    { label: "Total Bets", value: String(totalBets ?? 0), icon: Ticket },
-    { label: "Total Turnover", value: formatMoney(turnover), icon: TrendingUp },
+    { label: "Total Users", value: String(totalUsers ?? 0), icon: Users, chip: "bg-chart-1/10 text-chart-1" },
+    { label: "Total Bets", value: String(totalBets ?? 0), icon: Ticket, chip: "bg-chart-3/10 text-chart-3" },
+    { label: "Total Turnover", value: formatMoney(turnover), icon: TrendingUp, chip: "bg-chart-2/10 text-chart-2" },
   ];
 
   const quickActions = [
@@ -74,19 +93,58 @@ export default async function AdminDashboardPage() {
     { href: "/admin/banners", label: "Banners", icon: ImageIcon },
   ];
 
-  return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-5">
-      <h1 className="text-lg font-bold">Admin Dashboard</h1>
+  // Dashboard-3 (marketing analytics) chart data -- all derived from the
+  // rows above, no extra queries.
+  const turnoverSeries = dailySeries(stakeRows ?? [], (b) => b.placed_at, (b) => Number(b.stake));
+  const betStatus = statusBreakdown(stakeRows ?? [], (b) => b.status);
+  const depositSeries = dailySeries(deposits30 ?? [], (d) => d.created_at, (d) => Number(d.amount));
+  const withdrawalSeries = dailySeries(withdrawals30 ?? [], (w) => w.requested_at, (w) => Number(w.amount));
+  const cashflow = depositSeries.map((d, i) => ({
+    label: d.label,
+    deposits: d.value,
+    withdrawals: withdrawalSeries[i]?.value ?? 0,
+  }));
 
-      <div className="grid grid-cols-3 gap-3">
+  return (
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
+      <div>
+        <h1 className="text-xl font-bold">Admin Dashboard</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">Users, bets, and turnover at a glance.</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {stats.map((s) => (
-          <Card key={s.label} className="items-center gap-1 border-border/60 bg-card p-4 text-center">
-            <s.icon className="size-5 text-primary" />
-            <p className="text-lg font-extrabold">{s.value}</p>
-            <p className="text-[11px] text-muted-foreground">{s.label}</p>
+          <Card key={s.label} className="flex-row items-center justify-between gap-3 border-border/60 bg-card p-5">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-medium text-muted-foreground">{s.label}</p>
+              <p className="text-2xl font-bold tracking-tight">{s.value}</p>
+            </div>
+            <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-lg", s.chip)}>
+              <s.icon className="size-5" />
+            </span>
           </Card>
         ))}
       </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <AreaChartCard
+          title="Turnover"
+          subtitle="Daily stakes, last 30 days."
+          data={turnoverSeries}
+          className="lg:col-span-2"
+        />
+        <DoughnutChartCard title="Bet Status" subtitle="All bets by outcome." data={betStatus} />
+      </div>
+
+      <BarChartCard
+        title="Cashflow"
+        subtitle="Completed deposits vs withdrawals, last 30 days."
+        data={cashflow}
+        series={[
+          { key: "deposits", label: "Deposits", color: "var(--chart-1)" },
+          { key: "withdrawals", label: "Withdrawals", color: "var(--chart-4)" },
+        ]}
+      />
 
       <div>
         <h2 className="mb-2 text-sm font-semibold">Quick Actions</h2>
@@ -112,7 +170,9 @@ export default async function AdminDashboardPage() {
           ) : (
             activity.map((a, i) => (
               <div key={i} className="flex items-center gap-3 border-b border-border/60 px-4 py-3 last:border-0">
-                <a.icon className="size-4 shrink-0 text-primary" />
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <a.icon className="size-4" />
+                </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">{a.label}</p>
                   <p className="truncate text-xs text-muted-foreground">{a.value}</p>

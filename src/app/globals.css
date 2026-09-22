@@ -144,8 +144,10 @@
  * these variables instead of the site theme -- zero markup changes needed.
  *
  * Token source: CoolAdmin (github.com/puikinsh/cooladmin) css/theme.css
- *   primary #4272d7 / body #f8f9fa / card #fff / sidebar #2c3e50
+ *   body #f8f9fa / card #fff / sidebar #2c3e50
  *   text #333 / muted #6c757d / border #e9ecef / radius 3px / Poppins
+ * Brand color is EazyBet emerald (#12b96a light / #1de582 dark) instead of
+ * CoolAdmin's #4272d7 -- structure is CoolAdmin, the accent is ours.
  * ------------------------------------------------------------------------- */
 .portal {
   --font-geist-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
@@ -157,13 +159,13 @@
   --card-foreground: #333333;
   --popover: #ffffff;
   --popover-foreground: #333333;
-  --primary: #4272d7;
+  --primary: #12b96a;
   --primary-foreground: #ffffff;
   --secondary: #e9ecef;
   --secondary-foreground: #333333;
   --muted: #f1f3f5;
   --muted-foreground: #6c757d;
-  --accent: #e8eefb;
+  --accent: #e0f6ea;
   --accent-foreground: #333333;
   --destructive: #dc3545;
   --win: #28a745;
@@ -171,8 +173,8 @@
   --boost-foreground: #212529;
   --border: #e9ecef;
   --input: #dee2e6;
-  --ring: rgba(66, 114, 215, 0.45);
-  --chart-1: #4272d7;
+  --ring: rgba(18, 185, 106, 0.45);
+  --chart-1: #12b96a;
   --chart-2: #28a745;
   --chart-3: #17a2b8;
   --chart-4: #ffc107;
@@ -181,12 +183,12 @@
   --radius: 0.1875rem;
   --sidebar: #2c3e50;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #4272d7;
+  --sidebar-primary: #12b96a;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: rgba(255, 255, 255, 0.08);
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: rgba(66, 114, 215, 0.45);
+  --sidebar-ring: rgba(18, 185, 106, 0.45);
   /* CoolAdmin elevation scale. */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -205,13 +207,13 @@
   --card-foreground: #e9ecef;
   --popover: #1c1f24;
   --popover-foreground: #e9ecef;
-  --primary: #4272d7;
-  --primary-foreground: #ffffff;
+  --primary: #1de582;
+  --primary-foreground: #06170d;
   --secondary: #23262c;
   --secondary-foreground: #e9ecef;
   --muted: #23262c;
   --muted-foreground: #adb5bd;
-  --accent: #2a2e35;
+  --accent: #24322b;
   --accent-foreground: #e9ecef;
   --destructive: #dc3545;
   --win: #28a745;
@@ -219,15 +221,15 @@
   --boost-foreground: #212529;
   --border: #2a2e35;
   --input: #343a40;
-  --ring: rgba(66, 114, 215, 0.55);
+  --ring: rgba(29, 229, 130, 0.5);
   --sidebar: #0f1115;
   --sidebar-foreground: #e9ecef;
-  --sidebar-primary: #4272d7;
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary: #1de582;
+  --sidebar-primary-foreground: #06170d;
   --sidebar-accent: #23262c;
   --sidebar-accent-foreground: #e9ecef;
   --sidebar-border: #2a2e35;
-  --sidebar-ring: rgba(66, 114, 215, 0.55);
+  --sidebar-ring: rgba(29, 229, 130, 0.5);
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
@@ -260,6 +262,12 @@
     font-weight: 700;
     line-height: 1.2;
     color: var(--foreground);
+  }
+  /* CoolAdmin modal dim (~50%) -- scoped so the public frontend keeps its
+     lighter overlay. Dialogs portal to <body>, so match the overlay when
+     any .portal scope exists on the page. */
+  body:has(.portal) [data-slot="dialog-overlay"] {
+    background-color: rgb(0 0 0 / 0.5);
   }
 }
 

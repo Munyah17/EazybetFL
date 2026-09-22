@@ -15,6 +15,7 @@ import { normalizeZwPhone } from "@/lib/phone";
 export function LoginForm({
   redirectTo = "/",
   allowedRoles,
+  deniedRoles,
   invalidRoleMessage = "You don't have access to this portal.",
   showSocial = false,
   showSignUpLink = false,
@@ -28,6 +29,11 @@ export function LoginForm({
    * rendered from server components (admin/super-admin layouts) that
    * can't pass closures across the server/client boundary. */
   allowedRoles?: string[];
+  /** Roles that must never authenticate through this form, even with a
+   * correct password -- e.g. super_admin on the public /login page. The
+   * server signs the session out and returns a generic 401 so the form
+   * doesn't reveal that the account exists or is privileged. */
+  deniedRoles?: string[];
   invalidRoleMessage?: string;
   showSocial?: boolean;
   showSignUpLink?: boolean;
@@ -70,7 +76,7 @@ export function LoginForm({
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, allowedRoles }),
+      body: JSON.stringify({ email, password, allowedRoles, deniedRoles }),
     });
     setLoading(false);
 
