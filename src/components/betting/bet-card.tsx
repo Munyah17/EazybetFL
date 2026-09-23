@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ChevronDown } from "lucide-react";
@@ -52,6 +52,16 @@ export function BetCard({ bet }: { bet: BetRow }) {
     }
   }
 
+  // The quote is re-priced server-side on every call -- poll it while the
+  // slip is open so the offer tracks the live games.
+  useEffect(() => {
+    if (!expanded || bet.status !== "open") return;
+    loadPreview();
+    const t = setInterval(loadPreview, 10_000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expanded, bet.status]);
+
   async function handleCashOut() {
     setCashingOut(true);
     const { data, error } = await supabase.rpc("fn_cash_out", { p_bet_id: bet.id });
@@ -70,7 +80,7 @@ export function BetCard({ bet }: { bet: BetRow }) {
       <button
         onClick={() => {
           setExpanded((v) => !v);
-          if (!expanded && bet.status === "open" && bet.bet_type !== "single") loadPreview();
+          if (!expanded && bet.status === "open") loadPreview();
         }}
         className="flex w-full items-center justify-between gap-3 px-4 py-3.5"
       >
@@ -120,7 +130,7 @@ export function BetCard({ bet }: { bet: BetRow }) {
             </div>
           ))}
 
-          {bet.status === "open" && bet.bet_type !== "single" && (
+          {bet.status === "open" && (
             <div className="mt-2 flex items-center justify-between gap-3 border-t border-border/60 pt-3">
               <span className="text-xs text-muted-foreground">
                 {cashOutLocked

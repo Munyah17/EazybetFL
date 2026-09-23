@@ -33,7 +33,21 @@ export async function getFixtures(opts: {
   let query = supabase.from("fixtures").select(FIXTURE_SELECT);
 
   if (opts.status?.length) query = query.in("status", opts.status);
-  if (opts.status?.includes("upcoming")) {
+  const wantsUpcoming = opts.status?.includes("upcoming");
+  const wantsLive = opts.status?.includes("live");
+  if (wantsUpcoming && wantsLive) {
+    // The windows are per-status: "upcoming" only makes sense for fixtures
+    // that haven't kicked off, while "live" ones by definition already
+    // started. A single gte(now) would exclude every live fixture (its
+    // commence_time is in the past), so they have to be OR'd per status.
+    const now = new Date().toISOString();
+    const liveCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+    query = query.or(
+      `and(status.eq.upcoming,commence_time.gte.${now}),` +
+        `and(status.eq.live,commence_time.gte.${liveCutoff}),` +
+        `status.not.in.(upcoming,live)`
+    );
+  } else if (wantsUpcoming) {
     // Nothing currently flips a fixture out of "upcoming" once its kickoff
     // passes without a matching finished result from the scores sync (which
     // only looks back 2 days) -- so fixtures that never got a final score
@@ -42,8 +56,7 @@ export async function getFixtures(opts: {
     // today's real fixtures, making the front end look frozen no matter how
     // recently odds actually synced.
     query = query.gte("commence_time", new Date().toISOString());
-  }
-  if (opts.status?.includes("live")) {
+  } else if (wantsLive) {
     // Same failure mode for "live": nothing flips a fixture out of "live"
     // when the scores feed stalls, so matches from weeks ago sit on the
     // Live page forever. A real match is never still in play more than a

@@ -70,6 +70,62 @@ export async function fetchRecentFinalScores(daysBack = 4): Promise<FinalScore[]
   return out;
 }
 
+export type LiveScore = {
+  competitionCode: string;
+  utcDate: string;
+  status: "IN_PLAY" | "PAUSED";
+  home: string;
+  away: string;
+  homeScore: number;
+  awayScore: number;
+  /** Estimated elapsed minutes -- the free feed doesn't expose an official
+   * clock, so derive it from kickoff (minus a 15' halftime once past 60'). */
+  minute: number;
+};
+
+/** Matches currently in play across the subscribed competitions -- feeds
+ * the in-play cash-out pricing model. Same free tier, no extra cost. */
+export async function fetchLiveMatches(): Promise<LiveScore[]> {
+  const key = process.env.FOOTBALL_DATA_API_KEY;
+  if (!key) return [];
+
+  const today = ymd(new Date());
+  const url = `${BASE}/matches?dateFrom=${today}&dateTo=${today}`;
+
+  const res = await fetch(url, {
+    headers: { "X-Auth-Token": key },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!res.ok) {
+    throw new Error(`football-data.org ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  }
+
+  const body = (await res.json()) as { matches?: FdMatch[] };
+  const now = Date.now();
+  const out: LiveScore[] = [];
+  for (const m of body.matches ?? []) {
+    if (m.status !== "IN_PLAY" && m.status !== "PAUSED") continue;
+    const h = m.score?.fullTime?.home;
+    const a = m.score?.fullTime?.away;
+    const home = m.homeTeam?.name ?? m.homeTeam?.shortName;
+    const away = m.awayTeam?.name ?? m.awayTeam?.shortName;
+    if (h == null || a == null || !home || !away) continue;
+    const raw = (now - new Date(m.utcDate).getTime()) / 60000;
+    out.push({
+      competitionCode: m.competition?.code ?? "",
+      utcDate: m.utcDate,
+      status: m.status,
+      home,
+      away,
+      homeScore: h,
+      awayScore: a,
+      minute: Math.min(Math.max(Math.round(raw > 60 ? raw - 15 : raw), 0), 120),
+    });
+  }
+  return out;
+}
+
 const COMBINING_MARKS = /\p{Diacritic}/gu;
 const NOISE_WORDS = /\b(fc|cf|afc|sc|ac|as|ss|us|rc|cd|ud|sd|bk|if|sk|club|calcio|de|the)\b/g;
 

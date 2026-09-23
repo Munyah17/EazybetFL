@@ -6,13 +6,15 @@ import { logError } from "@/lib/log";
 import type { Database } from "@/types/database";
 
 /**
- * Settle every `open` bet whose selections have all reached a final
- * status. Pure database work -- no external API calls, so it's cheap
- * enough to run every few minutes (see /api/cron/tick), unlike the
- * scores fetch that feeds it.
+ * Settle every `open` bet whose outcome is already decided. A ticket is
+ * decided the moment ANY leg loses (single/multiple) or a system bet can
+ * no longer reach its required winners -- the global standard: one lost
+ * leg renders the whole betslip lost even if other games haven't started.
+ * Fully-resolved tickets settle too, of course.
  *
- * Extracted from syncScores so both the daily scores sync and the
- * frequent tick can run it. fn_settle_bet is idempotent-guarded
+ * Pure database work -- no external API calls, so it's cheap enough to
+ * run every few minutes (see /api/cron/tick), unlike the scores fetch
+ * that feeds it. fn_settle_bet is idempotent-guarded
  * (`BET_ALREADY_SETTLED`), so overlapping runs are safe.
  */
 export async function settleResolvedBets(
@@ -33,7 +35,12 @@ export async function settleResolvedBets(
       .select("status")
       .eq("bet_id", bet.id);
     if (!selections?.length) continue;
-    if (!selections.every((s) => s.status !== "pending")) continue;
+    // Worth a settle attempt when every leg is resolved OR any leg lost
+    // (fn_settle_bet decides whether a system ticket is actually dead and
+    // returns 'open' harmlessly when it isn't).
+    const anyLost = selections.some((s) => s.status === "lost");
+    const allResolved = selections.every((s) => s.status !== "pending");
+    if (!anyLost && !allResolved) continue;
 
     const { data: result, error: settleErr } = await supabase.rpc("fn_settle_bet", { p_bet_id: bet.id });
     if (settleErr) {
@@ -45,9 +52,10 @@ export async function settleResolvedBets(
       }
       continue;
     }
+    const outcome = result as { status: string; payout: number } | null;
+    if (!outcome || outcome.status === "open") continue; // not actually decided yet
     settled++;
 
-    const outcome = result as { status: string; payout: number } | null;
     const email = bet.profiles?.email;
     if (outcome?.status === "won" && outcome.payout > 0 && email) {
       try {

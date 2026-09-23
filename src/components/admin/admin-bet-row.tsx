@@ -53,6 +53,9 @@ export function AdminBetRow({ bet }: { bet: Bet }) {
   const [settling, setSettling] = useState(false);
 
   const allResolved = selections.every((s) => s.status !== "pending");
+  // A lost leg decides single/multiple tickets instantly (and can kill a
+  // system ticket) -- fn_settle_bet decides server-side either way.
+  const decided = allResolved || selections.some((s) => s.status === "lost");
 
   async function updateSelection(id: string, status: SelectionStatus) {
     const { error } = await supabase.rpc("fn_settle_selection", { p_selection_id: id, p_status: status });
@@ -61,6 +64,9 @@ export function AdminBetRow({ bet }: { bet: Bet }) {
       return;
     }
     setSelections((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
+    // Grading a leg 'lost' settles the whole ticket in the same
+    // transaction -- refresh so the badge reflects it immediately.
+    router.refresh();
   }
 
   async function settleBet() {
@@ -127,8 +133,8 @@ export function AdminBetRow({ bet }: { bet: Bet }) {
           ))}
 
           {bet.status === "open" && (
-            <Button size="sm" disabled={!allResolved || settling} onClick={settleBet} className="mt-2 w-full">
-              {settling ? "Settling…" : allResolved ? "Settle Bet" : "Set all selections first"}
+            <Button size="sm" disabled={!decided || settling} onClick={settleBet} className="mt-2 w-full">
+              {settling ? "Settling…" : decided ? "Settle Bet" : "Set all selections first"}
             </Button>
           )}
         </div>

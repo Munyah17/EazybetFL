@@ -61,8 +61,6 @@ export async function syncScores(
 
     let finished = 0;
     for (const ev of scoreEvents) {
-      if (!ev.completed || !ev.scores) continue;
-
       // Every step below can throw (any Supabase error is turned into a
       // throw) -- one fixture failing to settle must not stop the rest of
       // this key's events, and must not be swallowed silently: it's logged
@@ -72,14 +70,33 @@ export async function syncScores(
       try {
         const { data: fixture, error: fixtureErr } = await supabase
           .from("fixtures")
-          .select("id, status, home_team, away_team")
+          .select("id, status, home_team, away_team, commence_time")
           .eq("odds_api_event_id", ev.id)
           .maybeSingle();
         if (fixtureErr) throw new Error(`fixture lookup failed: ${fixtureErr.message}`);
         if (!fixture) continue; // not a fixture we track
 
-        const homeScore = Number(ev.scores.find((s) => s.name === fixture.home_team)?.score ?? NaN);
-        const awayScore = Number(ev.scores.find((s) => s.name === fixture.away_team)?.score ?? NaN);
+        const homeScore = Number(ev.scores?.find((s) => s.name === fixture.home_team)?.score ?? NaN);
+        const awayScore = Number(ev.scores?.find((s) => s.name === fixture.away_team)?.score ?? NaN);
+
+        // In-progress event with a scoreline: write it to the fixture so
+        // the in-play cash-out model can price pending legs on it.
+        if (!ev.completed && ev.scores && !Number.isNaN(homeScore) && !Number.isNaN(awayScore)) {
+          const elapsed = (Date.now() - new Date(fixture.commence_time).getTime()) / 60000;
+          await supabase
+            .from("fixtures")
+            .update({
+              status: "live",
+              home_score: homeScore,
+              away_score: awayScore,
+              minute: Math.min(Math.max(Math.round(elapsed > 60 ? elapsed - 15 : elapsed), 0), 120),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", fixture.id);
+          continue;
+        }
+
+        if (!ev.completed || !ev.scores) continue;
         if (Number.isNaN(homeScore) || Number.isNaN(awayScore)) continue;
 
         const { data: markets, error: marketsErr } = await supabase

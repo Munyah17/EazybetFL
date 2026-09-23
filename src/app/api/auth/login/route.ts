@@ -49,26 +49,43 @@ export async function POST(req: NextRequest) {
   // Role check happens here, server-side, right after auth -- doing it
   // client-side afterward would need the browser client to notice a
   // cookie change made by this response before it could trust its own
-  // session, which isn't guaranteed without an extra round trip.
-  if (allowedRoles || deniedRoles) {
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
+  // session, which isn't guaranteed without an extra round trip. The
+  // profile is fetched unconditionally because the staff backstop below
+  // must hold even when a caller crafts a request with no role params.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", data.user.id)
+    .single();
 
-    // Denied roles (e.g. super_admin on the public /login) get a generic
-    // 401, not access_denied -- the public form must not reveal that the
-    // credentials were valid or that the account is privileged. The
-    // attempt is logged so it shows up on the System Status page.
-    if (profile && deniedRoles?.includes(profile.role)) {
-      await supabase.auth.signOut();
-      await logError("api:auth/login", "Denied-role login attempt rejected", {
-        role: profile.role,
-      });
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
-    }
+  // Denied roles (e.g. staff on the public /login) get a generic 401, not
+  // access_denied -- the public form must not reveal that the credentials
+  // were valid or that the account is privileged. The attempt is logged so
+  // it shows up on the System Status page.
+  if (profile && deniedRoles?.includes(profile.role)) {
+    await supabase.auth.signOut();
+    await logError("api:auth/login", "Denied-role login attempt rejected", {
+      role: profile.role,
+    });
+    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+  }
 
-    if (allowedRoles && (!profile || !allowedRoles.includes(profile.role))) {
-      await supabase.auth.signOut();
-      return NextResponse.json({ error: "access_denied" }, { status: 403 });
-    }
+  if (allowedRoles && (!profile || !allowedRoles.includes(profile.role))) {
+    await supabase.auth.signOut();
+    return NextResponse.json({ error: "access_denied" }, { status: 403 });
+  }
+
+  // Staff backstop: admin and super_admin accounts are offices, not wager
+  // profiles -- they may only ever authenticate through a portal login that
+  // explicitly allows their role. Any other request (public /login, or a
+  // crafted body with no role params) is rejected with a generic 401.
+  const isStaff = profile?.role === "admin" || profile?.role === "super_admin";
+  if (isStaff && !allowedRoles?.includes(profile!.role)) {
+    await supabase.auth.signOut();
+    await logError("api:auth/login", "Staff login outside portal rejected", {
+      role: profile!.role,
+    });
+    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
   return NextResponse.json({ ok: true });

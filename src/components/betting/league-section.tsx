@@ -2,12 +2,29 @@ import { Card } from "@/components/ui/card";
 import { FixtureRow } from "@/components/betting/fixture-row";
 import type { FixtureWithOdds, QuickMarketKey } from "@/lib/data/fixture-types";
 
-export function LeagueSections({
+type BucketKey = "live" | "today" | "tomorrow" | "later";
+
+const BUCKET_ORDER: { key: BucketKey; title: string }[] = [
+  { key: "live", title: "Live Now" },
+  { key: "today", title: "Today" },
+  { key: "tomorrow", title: "Tomorrow" },
+  { key: "later", title: "Upcoming" },
+];
+
+function bucketFor(fixture: FixtureWithOdds, today: string, tomorrow: string): BucketKey {
+  if (fixture.status === "live") return "live";
+  const day = new Date(fixture.commence_time).toDateString();
+  if (day === today) return "today";
+  if (day === tomorrow) return "tomorrow";
+  return "later";
+}
+
+function LeagueGroups({
   fixtures,
-  marketKey = "h2h",
+  marketKey,
 }: {
   fixtures: FixtureWithOdds[];
-  marketKey?: QuickMarketKey;
+  marketKey: QuickMarketKey;
 }) {
   const byCompetition = new Map<string, { title: string; fixtures: FixtureWithOdds[] }>();
 
@@ -19,16 +36,8 @@ export function LeagueSections({
     byCompetition.get(key)!.fixtures.push(f);
   }
 
-  if (byCompetition.size === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
-        No fixtures available right now. Check back soon.
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-4">
+    <>
       {Array.from(byCompetition.entries()).map(([id, group]) => (
         <div key={id}>
           <div className="mb-1.5 flex items-center justify-between px-1">
@@ -40,6 +49,59 @@ export function LeagueSections({
             ))}
           </Card>
         </div>
+      ))}
+    </>
+  );
+}
+
+/**
+ * Groups fixtures into league sections, but buckets by kickoff window first
+ * (Live -> Today -> Tomorrow -> Later). Without the bucketing, a league whose
+ * next match is soon drags ALL of its fixtures -- including ones a week out --
+ * above other leagues' imminent games, which is how far-future fixtures ended
+ * up rendering on top of near/live ones.
+ */
+export function LeagueSections({
+  fixtures,
+  marketKey = "h2h",
+}: {
+  fixtures: FixtureWithOdds[];
+  marketKey?: QuickMarketKey;
+}) {
+  if (fixtures.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+        No fixtures available right now. Check back soon.
+      </div>
+    );
+  }
+
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const todayStr = now.toDateString();
+  const tomorrowStr = tomorrow.toDateString();
+
+  const buckets = new Map<BucketKey, FixtureWithOdds[]>();
+  for (const f of fixtures) {
+    const key = bucketFor(f, todayStr, tomorrowStr);
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key)!.push(f);
+  }
+
+  const nonEmpty = BUCKET_ORDER.filter((b) => buckets.has(b.key));
+
+  return (
+    <div className="flex flex-col gap-4">
+      {nonEmpty.map((bucket) => (
+        <section key={bucket.key} className="flex flex-col gap-4">
+          {nonEmpty.length > 1 && (
+            <h2 className="px-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              {bucket.title}
+            </h2>
+          )}
+          <LeagueGroups fixtures={buckets.get(bucket.key)!} marketKey={marketKey} />
+        </section>
       ))}
     </div>
   );
