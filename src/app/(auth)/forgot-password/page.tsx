@@ -17,9 +17,14 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setLoading(true);
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin;
+    // window.location.origin over NEXT_PUBLIC_APP_URL: the env var is baked
+    // at build time and has shipped "localhost" before, which is how auth
+    // emails end up pointing at a dead host. The page's own origin can't be
+    // wrong. The link goes through /auth/confirm so the recovery token is
+    // exchanged server-side (works even in a mail-app webview with no
+    // PKCE cookie), then forwards to /reset-password with a live session.
     await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${appUrl}/reset-password`,
+      redirectTo: `${window.location.origin}/auth/confirm?next=/reset-password`,
     });
 
     setLoading(false);

@@ -20,10 +20,9 @@ import {
 } from "lucide-react";
 import { PortalShell, type PortalNavSection } from "@/components/portal/portal-shell";
 
-// Super admin is the top-most role -- its nav is every admin operational
-// tool plus the governance-only ones, grouped into CoolAdmin-style sections.
-// Operational items route through the same /admin/* pages admin uses; only
-// governance items have their own /super-admin/* pages.
+// Super admin and admin are separate roles with separate portals -- nothing
+// here links into /admin/*. Operational items use super-admin-owned mirrors
+// of the same tools, so a super admin never touches the admin portal.
 const sections: PortalNavSection[] = [
   {
     items: [{ href: "/super-admin", label: "Dashboard", icon: LayoutDashboard, exact: true }],
@@ -31,22 +30,22 @@ const sections: PortalNavSection[] = [
   {
     label: "Operations",
     items: [
-      { href: "/admin/reports", label: "Reports", icon: BarChart3 },
-      { href: "/admin/users", label: "Users", icon: UserCog },
+      { href: "/super-admin/reports", label: "Reports", icon: BarChart3 },
+      { href: "/super-admin/users", label: "User Management", icon: UserCog },
       { href: "/super-admin/agents", label: "Agents", icon: Handshake },
-      { href: "/admin/bets", label: "Bets", icon: Ticket },
-      { href: "/admin/withdrawals", label: "Withdrawals", icon: Banknote },
+      { href: "/super-admin/bets", label: "Bets", icon: Ticket },
+      { href: "/super-admin/withdrawals", label: "Withdrawals", icon: Banknote },
       { href: "/super-admin/deposit-verifications", label: "Deposit Checks", icon: BadgeCheck },
-      { href: "/admin/vouchers", label: "Vouchers", icon: TicketPercent },
-      { href: "/admin/promotions", label: "Promotions", icon: Gift },
-      { href: "/admin/banners", label: "Banners", icon: ImageIcon },
-      { href: "/admin/support", label: "Support", icon: LifeBuoy },
+      { href: "/super-admin/vouchers", label: "Vouchers", icon: TicketPercent },
+      { href: "/super-admin/promotions", label: "Promotions", icon: Gift },
+      { href: "/super-admin/banners", label: "Banners", icon: ImageIcon },
+      { href: "/super-admin/support", label: "Support", icon: LifeBuoy },
     ],
   },
   {
     label: "Governance",
     items: [
-      { href: "/super-admin/admins", label: "Admins", icon: Users },
+      { href: "/super-admin/staff", label: "Staff Management", icon: Users },
       { href: "/super-admin/escrow", label: "Escrow", icon: Vault },
       { href: "/super-admin/system", label: "System Status", icon: Activity },
       { href: "/super-admin/logs", label: "Logs", icon: FileWarning },
@@ -57,11 +56,7 @@ const sections: PortalNavSection[] = [
 
 export function SuperAdminShell({ children }: { children: React.ReactNode }) {
   return (
-    <PortalShell
-      badge="Super Admin"
-      sections={sections}
-      headerLinks={[{ href: "/admin", label: "Admin View" }]}
-    >
+    <PortalShell badge="Super Admin" sections={sections}>
       {children}
     </PortalShell>
   );

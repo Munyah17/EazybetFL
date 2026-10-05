@@ -179,13 +179,13 @@ export default async function SuperAdminDashboardPage() {
             <span className="text-xs font-medium">Manage Agents</span>
           </Card>
         </Link>
-        <Link href="/admin/withdrawals">
+        <Link href="/super-admin/withdrawals">
           <Card className="items-center gap-1.5 border-border/60 bg-card p-4 text-center hover:bg-accent">
             <Clock className="size-5 text-primary" />
             <span className="text-xs font-medium">Withdrawal Queue</span>
           </Card>
         </Link>
-        <Link href="/admin/banners">
+        <Link href="/super-admin/banners">
           <Card className="items-center gap-1.5 border-border/60 bg-card p-4 text-center hover:bg-accent">
             <ImageIcon className="size-5 text-primary" />
             <span className="text-xs font-medium">Banners</span>

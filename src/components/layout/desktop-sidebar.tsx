@@ -33,9 +33,9 @@ function filterTree(groups: SportGroupNode[], query: string): SportGroupNode[] {
 export function DesktopSidebar({ groups }: { groups: SportGroupNode[] }) {
   const pathname = usePathname();
   const [query, setQuery] = useState("");
-  const [expandedSports, setExpandedSports] = useState<Set<string>>(
-    () => new Set(groups[0] ? [groups[0].key] : [])
-  );
+  // All sport groups start collapsed -- expanding is an explicit click on the
+  // group header (the `searching` branch below still auto-opens matches).
+  const [expandedSports, setExpandedSports] = useState<Set<string>>(new Set());
   const [expandedCountries, setExpandedCountries] = useState<Set<string>>(new Set());
 
   const searching = query.trim().length > 0;

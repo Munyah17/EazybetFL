@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCronSecret } from "@/lib/cron-auth";
 import { syncScores } from "@/lib/sync/scores";
 import { settleFromFreeScores } from "@/lib/sync/free-scores";
+import { settleFromEspnScores } from "@/lib/sync/espn-scores";
 import { settleResolvedBets } from "@/lib/sync/settle";
 import { reconcileStuckDeposits } from "@/lib/sync/deposits";
 import { logError } from "@/lib/log";
@@ -41,6 +42,16 @@ export async function GET(req: NextRequest) {
     await logError("cron:sync-settlement", e, { step: "free_scores" });
     freeScores = { matched: 0, settled: 0, unmatched: 0, skipped: false, errors: [e instanceof Error ? e.message : String(e)] };
   }
+  // ESPN scoreboard fallback -- covers leagues the odds provider doesn't
+  // grade and keeps settling when its /scores quota is exhausted.
+  let espnScores;
+  try {
+    espnScores = await settleFromEspnScores(supabase);
+    if (espnScores.errors.length) await logError("cron:sync-settlement", espnScores.errors.join("; "), { step: "espn_scores" });
+  } catch (e) {
+    await logError("cron:sync-settlement", e, { step: "espn_scores" });
+    espnScores = { matched: 0, settled: 0, unmatched: 0, skippedLeagues: [], errors: [e instanceof Error ? e.message : String(e)] };
+  }
   try {
     await settleResolvedBets(supabase);
   } catch (e) {
@@ -71,6 +82,7 @@ export async function GET(req: NextRequest) {
     {
       scores: scores.ok ? scores.data : { error: scores.error },
       freeScores,
+      espnScores,
       expired: expireErr ? { error: expireErr.message } : expired,
       deposits,
     },

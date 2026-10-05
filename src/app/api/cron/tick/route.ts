@@ -4,6 +4,7 @@ import { requireCronSecret } from "@/lib/cron-auth";
 import { reconcileStuckDeposits } from "@/lib/sync/deposits";
 import { settleResolvedBets, cleanupStaleFixtures } from "@/lib/sync/settle";
 import { settleFromFreeScores } from "@/lib/sync/free-scores";
+import { settleFromEspnScores } from "@/lib/sync/espn-scores";
 import { logError } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export const maxDuration = 120;
  * football-data.org for settlement -- that's a separate, free feed.
  *
  *   - re-verify stuck Paynow/EcoCash deposits against the gateway
- *   - auto-settle fixtures against free final scores
+ *   - auto-settle fixtures against free final scores (football-data.org + ESPN)
  *   - settle any bet whose selections are all now resolved
  *   - expire lapsed booking codes
  *   - retire stale live/upcoming fixtures with no open bets
@@ -50,6 +51,20 @@ export async function GET(req: NextRequest) {
     scores = { error: e instanceof Error ? e.message : String(e) };
   }
 
+  // ESPN's free scoreboard covers leagues the odds provider + football-data
+  // don't (NFL, NHL, Brazil Serie B, ...) -- and keeps settling even when the
+  // provider's /scores quota is exhausted, which is what stranded tickets as
+  // 'Open' before. Runs every tick; it only fetches leagues that actually have
+  // unresolved bets, so cost is one request per in-play league.
+  let espn: Awaited<ReturnType<typeof settleFromEspnScores>> | { error: string };
+  try {
+    espn = await settleFromEspnScores(supabase);
+    if (espn.errors.length) await logError("cron:tick", espn.errors.join("; "), { step: "espn_scores" });
+  } catch (e) {
+    await logError("cron:tick", e, { step: "espn_scores" });
+    espn = { error: e instanceof Error ? e.message : String(e) };
+  }
+
   let bets: Awaited<ReturnType<typeof settleResolvedBets>> | { error: string };
   try {
     bets = await settleResolvedBets(supabase);
@@ -77,5 +92,5 @@ export async function GET(req: NextRequest) {
     fixtures = { error: e instanceof Error ? e.message : String(e) };
   }
 
-  return NextResponse.json({ deposits, scores, bets, expired, fixtures });
+  return NextResponse.json({ deposits, scores, espn, bets, expired, fixtures });
 }

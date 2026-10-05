@@ -51,17 +51,29 @@ export default function SignUpPage() {
 
     // Routed through our own server so signup attempts can be rate
     // limited -- same reason as login.
-    const res = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, fullName, phone: fullPhone }),
-    });
+    let res: Response;
+    try {
+      res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, fullName, phone: fullPhone }),
+      });
+    } catch {
+      setLoading(false);
+      toast.error("Sign up failed", {
+        description: "Couldn't reach the server. Check your connection and try again.",
+      });
+      return;
+    }
     setLoading(false);
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
+      // The route sanitizes Supabase errors into user-safe copy already --
+      // pass it through instead of double-filtering, which would mask known
+      // messages behind the generic fallback.
       toast.error("Sign up failed", {
-        description: res.status === 429 ? body.error : friendlyError(body.error ?? "Please try again."),
+        description: body.error ?? friendlyError(null),
       });
       return;
     }

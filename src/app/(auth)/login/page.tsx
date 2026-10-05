@@ -9,22 +9,14 @@ export default async function LoginPage({
 }) {
   const { next } = await searchParams;
 
-  // Staff accounts are offices, not customers -- an admin or super_admin
-  // with a live session has no business on the public login page at all.
-  // Send them straight to their own portal.
+  // A live session has no business on the login page -- send everyone to the
+  // homepage, never a portal. Staff portals are entered only by deliberately
+  // visiting /admin or /super-admin; nothing public auto-routes into them.
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-    if (profile?.role === "super_admin") redirect("/super-admin");
-    if (profile?.role === "admin") redirect("/admin");
-  }
+  if (user) redirect("/");
 
   return (
     <div className="flex flex-col gap-6">

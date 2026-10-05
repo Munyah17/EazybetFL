@@ -15,6 +15,7 @@ import { useBetslip, computeTotalOdds, type BetType } from "@/lib/betslip-store"
 import { useSession } from "@/lib/auth/session-provider";
 import { createClient } from "@/lib/supabase/client";
 import { formatMoney, formatOdds, formatKickoff } from "@/lib/format";
+import { betslipCode } from "@/lib/bet-code";
 import { useLoadBookedBet } from "@/lib/use-load-booked-bet";
 import { BookBetDialog } from "@/components/betting/book-bet-dialog";
 import { friendlyError } from "@/lib/friendly-error";
@@ -124,7 +125,7 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
     }
 
     setPlacing(true);
-    const { error } = await supabase.rpc("fn_place_bet", {
+    const { data: placed, error } = await supabase.rpc("fn_place_bet", {
       p_bet_type: effectiveBetType,
       p_stake: stake,
       p_selections: selections.map((s) => ({ outcome_id: s.outcomeId })),
@@ -138,7 +139,10 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
       return;
     }
 
-    toast.success("Bet placed!", { description: "Good luck — check My Bets for live status." });
+    const placedGroup = (placed as { placement_group_id?: string } | null)?.placement_group_id;
+    toast.success(`Bet placed! Ticket ${betslipCode(placedGroup)}`, {
+      description: "Good luck — check My Bets for live status.",
+    });
     clear();
     onPlaced?.();
     await refreshWallet();

@@ -7,7 +7,6 @@ import {
   Banknote,
   Gift,
   Image as ImageIcon,
-  ShieldCheck,
   Handshake,
   TicketPercent,
   LifeBuoy,
@@ -16,19 +15,13 @@ import {
 } from "lucide-react";
 import { PortalShell, type PortalNavSection } from "@/components/portal/portal-shell";
 
-export function AdminShell({
-  isSuperAdmin,
-  children,
-}: {
-  isSuperAdmin: boolean;
-  children: React.ReactNode;
-}) {
+export function AdminShell({ children }: { children: React.ReactNode }) {
   const sections: PortalNavSection[] = [
     {
       items: [
         { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
         { href: "/admin/reports", label: "Reports", icon: BarChart3 },
-        { href: "/admin/users", label: "Users", icon: Users },
+        { href: "/admin/users", label: "User Management", icon: Users },
         { href: "/admin/agents", label: "Agents", icon: Handshake },
         { href: "/admin/bets", label: "Bets", icon: Ticket },
         { href: "/admin/settlement", label: "Settlement", icon: Flag },
@@ -39,14 +32,6 @@ export function AdminShell({
         { href: "/admin/support", label: "Support", icon: LifeBuoy },
       ],
     },
-    ...(isSuperAdmin
-      ? [
-          {
-            label: "Governance",
-            items: [{ href: "/super-admin", label: "Super Admin", icon: ShieldCheck }],
-          },
-        ]
-      : []),
   ];
 
   return (

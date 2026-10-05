@@ -14,7 +14,7 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3238](http://localhost:3238) with your browser to see the result. The dev server is locked to port 3238 (`npm run dev` runs `next dev -p 3238`) so it won't collide with other projects squatting common ports.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

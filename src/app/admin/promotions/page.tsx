@@ -6,7 +6,8 @@ export default async function AdminPromotionsPage() {
   const { data: promotions } = await supabase
     .from("promotions")
     .select("id, title, description, type, value, active, created_at")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(200);
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">

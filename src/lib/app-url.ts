@@ -36,5 +36,5 @@ export function getAppBaseUrl(req?: NextRequest): string {
   const vercelProd = process.env.VERCEL_PROJECT_PRODUCTION_URL;
   if (vercelProd) return `https://${vercelProd.replace(/\/+$/, "")}`;
 
-  return configured ?? "http://localhost:3000";
+  return configured ?? "http://localhost:3238";
 }

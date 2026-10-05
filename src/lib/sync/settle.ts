@@ -23,6 +23,49 @@ export async function settleResolvedBets(
   const errors: string[] = [];
   let settled = 0;
 
+  // Dead-feed fallback: a selection still `pending` 48h after kickoff means
+  // every score source failed to confirm a result. Void those legs so the
+  // ticket settles instead of hanging open forever -- the standard bookmaker
+  // "not resulted" rule: void legs count as 1.0, a multiple still wins on its
+  // surviving legs, and a fully-voided ticket returns its stake.
+  const voidCutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  const { data: staleSels, error: staleErr } = await supabase
+    .from("bet_selections")
+    .select("id, fixture_id, fixtures!inner(commence_time, status)")
+    .eq("status", "pending")
+    .lt("fixtures.commence_time", voidCutoff)
+    .neq("fixtures.status", "finished");
+  if (staleErr) {
+    errors.push(`stale-void lookup: ${staleErr.message}`);
+  } else {
+    const staleFixtureIds = new Set<string>();
+    for (const s of staleSels ?? []) {
+      const { error: uErr } = await supabase
+        .from("bet_selections")
+        .update({ status: "void", settled_at: new Date().toISOString() })
+        .eq("id", s.id)
+        .eq("status", "pending");
+      if (uErr) errors.push(`stale-void ${s.id}: ${uErr.message}`);
+      else staleFixtureIds.add(s.fixture_id);
+    }
+    // Retire the fixture so it leaves every pending-bet poll; with no score
+    // ever confirmed there's nothing left to grade against it.
+    for (const fid of staleFixtureIds) {
+      const { error: fErr } = await supabase
+        .from("fixtures")
+        .update({ status: "finished" })
+        .eq("id", fid)
+        .neq("status", "finished");
+      if (fErr) errors.push(`stale-fixture ${fid}: ${fErr.message}`);
+    }
+    if (staleFixtureIds.size > 0) {
+      await logError("sync:settle", `voided stale legs on ${staleFixtureIds.size} fixture(s) with no confirmed result after 48h`, {
+        step: "stale_void",
+        fixtureIds: [...staleFixtureIds],
+      });
+    }
+  }
+
   const { data: openBets, error } = await supabase
     .from("bets")
     .select("id, bet_type, profiles(email)")

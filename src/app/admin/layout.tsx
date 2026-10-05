@@ -52,7 +52,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
 
-  if (!profile || (profile.role !== "admin" && profile.role !== "super_admin")) {
+  if (!profile || profile.role !== "admin") {
     return (
       <PortalAuthShell>
         <div className="flex flex-col items-center gap-3 text-center">
@@ -69,5 +69,5 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     );
   }
 
-  return <AdminShell isSuperAdmin={profile.role === "super_admin"}>{children}</AdminShell>;
+  return <AdminShell>{children}</AdminShell>;
 }

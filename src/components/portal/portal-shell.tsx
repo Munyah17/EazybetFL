@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, ArrowLeft, type LucideIcon } from "lucide-react";
@@ -26,8 +26,6 @@ type PortalShellProps = {
   /** Shown in the top header next to the hamburger, e.g. "Admin Dashboard". */
   badge: string;
   sections: PortalNavSection[];
-  /** Extra links on the right of the header (e.g. "Admin View"). */
-  headerLinks?: { href: string; label: string }[];
   children: React.ReactNode;
 };
 
@@ -105,14 +103,18 @@ function SidebarFooter() {
  * content without pushing it). All colors resolve through the .portal
  * sidebar tokens in globals.css.
  */
-export function PortalShell({ badge, sections, headerLinks = [], children }: PortalShellProps) {
+export function PortalShell({ badge, sections, children }: PortalShellProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  // Close the drawer whenever the route changes.
-  useEffect(() => {
+  // Close the drawer whenever the route changes -- adjust state during render
+  // instead of an effect so there's no cascading re-render (and it satisfies
+  // react-hooks/set-state-in-effect).
+  const [seenPathname, setSeenPathname] = useState(pathname);
+  if (seenPathname !== pathname) {
+    setSeenPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   return (
     <div className="portal min-h-svh bg-background">
@@ -175,11 +177,6 @@ export function PortalShell({ badge, sections, headerLinks = [], children }: Por
             {badge}
           </Badge>
           <div className="ml-auto flex items-center gap-2">
-            {headerLinks.map((l) => (
-              <Link key={l.href} href={l.href} className="px-2 text-sm font-medium text-primary">
-                {l.label}
-              </Link>
-            ))}
             <ThemeToggle />
           </div>
         </header>

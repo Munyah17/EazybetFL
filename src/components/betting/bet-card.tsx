@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatMoney, formatOdds } from "@/lib/format";
+import { betslipCode } from "@/lib/bet-code";
 import { createClient } from "@/lib/supabase/client";
 import type { BetRow } from "@/lib/data/bets";
 import { friendlyError } from "@/lib/friendly-error";
@@ -92,6 +93,9 @@ export function BetCard({ bet }: { bet: BetRow }) {
               {bet.bet_selections.length} Selection{bet.bet_selections.length > 1 ? "s" : ""}
             </span>
           </div>
+          <p className="font-mono text-[11px] tracking-wide text-muted-foreground">
+            {betslipCode(bet.placement_group_id ?? bet.id)}
+          </p>
           <p className="text-xs text-muted-foreground">
             {new Date(bet.placed_at).toLocaleString("en-GB", {
               day: "2-digit",

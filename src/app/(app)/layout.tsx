@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SessionProvider } from "@/lib/auth/session-provider";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -39,13 +38,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     openBetsCount = sessionData[2].count ?? 0;
   }
 
-  // Staff sessions default to their office portal, at once -- an admin or
-  // super_admin never lands inside the ordinary client view. Any client
-  // route (home, account, wallet, bets...) sends them straight to their
-  // dashboard, which is their home.
-  if (profile?.role === "super_admin") redirect("/super-admin");
-  if (profile?.role === "admin") redirect("/admin");
-
+  // Staff sessions browse the public site like any authenticated customer --
+  // a super_admin sees /, /sports, /wallet exactly as a user does. The portals
+  // are only entered by deliberately navigating to /admin or /super-admin,
+  // whose layouts enforce their own role checks.
   return (
     <SessionProvider initialProfile={profile} initialWallet={wallet} initialOpenBetsCount={openBetsCount}>
       <AnnouncementBar announcement={announcement} />

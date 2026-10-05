@@ -11,7 +11,7 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4">
-      <h1 className="text-lg font-bold">Users</h1>
+      <h1 className="text-lg font-bold">User Management</h1>
       <UsersTable users={users ?? []} />
     </div>
   );

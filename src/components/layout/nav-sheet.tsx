@@ -10,7 +10,6 @@ import {
   Bookmark,
   Gift,
   Dices,
-  ShieldCheck,
   Handshake,
   LogOut,
   LogIn,
@@ -28,7 +27,6 @@ import { CASINO_URL } from "@/lib/constants";
 export function NavSheet() {
   const [open, setOpen] = useState(false);
   const { profile, signOut } = useSession();
-  const isAdmin = profile?.role === "admin" || profile?.role === "super_admin";
   const isAgent = profile?.role === "agent";
 
   const links = [
@@ -44,7 +42,6 @@ export function NavSheet() {
         ]
       : []),
     ...(isAgent ? [{ href: "/agent", label: "Agent Dashboard", icon: Handshake }] : []),
-    ...(isAdmin ? [{ href: "/admin", label: "Admin Dashboard", icon: ShieldCheck }] : []),
   ];
 
   return (
