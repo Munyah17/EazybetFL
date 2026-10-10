@@ -94,7 +94,12 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
       return;
     }
     if (selections.length === 0) return;
-    if ((wallet?.balance ?? 0) + (wallet?.principal_balance ?? 0) < totalStakeRequired) {
+    // Super admin bets are house-funded (is_free_bet) -- the wallet is
+    // infinite, so the balance check doesn't apply here or in fn_place_bet.
+    if (
+      profile.role !== "super_admin" &&
+      (wallet?.balance ?? 0) + (wallet?.principal_balance ?? 0) < totalStakeRequired
+    ) {
       toast.error("Insufficient balance", { description: "Top up your wallet to place this bet." });
       return;
     }

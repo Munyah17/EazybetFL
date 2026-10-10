@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 
 const BET_SELECT = `
-  id, placement_group_id, bet_type, system_size, stake, total_odds, winboost_enabled, potential_payout,
+  id, placement_group_id, bet_type, system_size, stake, total_odds, winboost_enabled, potential_payout, is_free_bet,
   status, cash_out_value, placed_at, settled_at, cashed_out_at,
   bet_selections ( id, selection_name, market_name, fixture_label, odds_price, status )
 `;

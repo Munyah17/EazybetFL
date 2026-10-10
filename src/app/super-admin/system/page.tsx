@@ -25,6 +25,12 @@ type Reconciliation = {
   checked_at: string;
   house_balance: number | null;
   escrow_balance: number | null;
+  house_bets?: {
+    count: number;
+    total_staked: number;
+    open_count: number;
+    open_stake: number;
+  };
   anomalies: Record<string, unknown>[];
 };
 
@@ -105,6 +111,16 @@ export default async function SystemStatusPage() {
                     {formatMoney(Number(reconcile.house_balance ?? 0))}
                   </p>
                 </div>
+                {reconcile.house_bets && (
+                  <div className="col-span-2">
+                    House-funded bets (super admin)
+                    <p className="text-sm font-semibold text-foreground">
+                      {formatMoney(Number(reconcile.house_bets.open_stake))} open ·{" "}
+                      {formatMoney(Number(reconcile.house_bets.total_staked))} staked across{" "}
+                      {reconcile.house_bets.count} bet{reconcile.house_bets.count === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                )}
               </div>
               {!reconcile.ok && (
                 <pre className="mt-3 overflow-x-auto rounded bg-secondary/40 p-2 text-[10px]">

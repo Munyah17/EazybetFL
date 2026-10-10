@@ -25,6 +25,7 @@ type Bet = {
   potential_payout: number;
   status: string;
   placed_at: string;
+  is_free_bet: boolean;
   profiles: { full_name: string } | null;
   bet_selections: {
     id: string;
@@ -92,6 +93,13 @@ export function AdminBetRow({ bet }: { bet: Bet }) {
               {bet.status.replace("_", " ")}
             </Badge>
             <span className="text-sm font-semibold capitalize">{bet.bet_type}</span>
+            {bet.is_free_bet && (
+              // House-funded stake (super admin "infinite wallet") -- no wallet
+              // was debited; any payout returns to the house reserve.
+              <Badge variant="secondary" className="text-[10px] font-bold uppercase">
+                House
+              </Badge>
+            )}
           </div>
           <p className="truncate text-xs text-muted-foreground">{bet.profiles?.full_name}</p>
         </div>

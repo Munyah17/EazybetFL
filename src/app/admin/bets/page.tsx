@@ -6,7 +6,7 @@ export default async function AdminBetsPage() {
   const { data: bets } = await supabase
     .from("bets")
     .select(
-      `id, bet_type, stake, total_odds, potential_payout, status, placed_at,
+      `id, bet_type, stake, total_odds, potential_payout, status, placed_at, is_free_bet,
        profiles ( full_name ),
        bet_selections ( id, selection_name, market_name, fixture_label, odds_price, status )`
     )

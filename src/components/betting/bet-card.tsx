@@ -89,6 +89,11 @@ export function BetCard({ bet }: { bet: BetRow }) {
           <div className="flex items-center gap-2">
             <Badge className={cn("border-0 text-[10px] font-bold", style.className)}>{style.label}</Badge>
             <span className="text-sm font-semibold capitalize">{bet.bet_type}</span>
+            {bet.is_free_bet && (
+              <Badge variant="secondary" className="text-[10px] font-bold uppercase">
+                House
+              </Badge>
+            )}
             <span className="text-xs text-muted-foreground">
               {bet.bet_selections.length} Selection{bet.bet_selections.length > 1 ? "s" : ""}
             </span>
