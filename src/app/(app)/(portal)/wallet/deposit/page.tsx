@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Smartphone, CreditCard } from "lucide-react";
@@ -11,28 +11,65 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/auth/session-provider";
+import { createClient } from "@/lib/supabase/client";
 
 // EcoCash Instant Payment (USSD/EIP) and Paynow are two separate, unrelated
 // integrations -- EIP talks to EcoCash directly, Paynow is a gateway whose
 // own hosted checkout lets the payer pick EcoCash/OneMoney/Visa/bank/etc.
-// themselves. They used to be blurred together behind per-instrument
-// choices that all secretly routed through the same Paynow redirect
-// regardless of which one was picked. EcoCash Instant is disabled for now:
-// no live API keys yet, only sandbox ones -- Paynow is fully activated.
+// themselves. Which rails are actually offered is controlled by
+// payment_method_settings (super-admin Payment Methods page) -- the
+// `setting` key here joins the UI entry to its toggle.
 const METHODS = [
-  { id: "ecocash", label: "EcoCash Instant Payment", icon: Smartphone, needsPhone: true, disabled: true },
-  { id: "paynow", label: "Paynow", icon: CreditCard, needsPhone: false, disabled: false },
+  {
+    id: "ecocash",
+    setting: "ecocash_instant",
+    label: "EcoCash Instant Payment",
+    icon: Smartphone,
+    needsPhone: true,
+    defaultEnabled: false,
+  },
+  {
+    id: "paynow",
+    setting: "paynow",
+    label: "Paynow",
+    icon: CreditCard,
+    needsPhone: false,
+    defaultEnabled: true,
+  },
 ] as const;
+
+type MethodId = (typeof METHODS)[number]["id"];
 
 const QUICK_AMOUNTS = [10, 20, 50, 100];
 
 export default function DepositPage() {
   const router = useRouter();
   const { refreshWallet } = useSession();
-  const [method, setMethod] = useState<(typeof METHODS)[number]["id"]>("paynow");
+  const [method, setMethod] = useState<MethodId>("paynow");
   const [amount, setAmount] = useState<string>("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  // Safe default while the settings row loads (or if the table is missing):
+  // Paynow on, EcoCash Instant off.
+  const [enabled, setEnabled] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(METHODS.map((m) => [m.setting, m.defaultEnabled]))
+  );
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("payment_method_settings")
+      .select("method, enabled")
+      .then(({ data }) => {
+        if (data?.length) {
+          setEnabled((prev) => {
+            const next = { ...prev };
+            for (const row of data) next[row.method] = row.enabled;
+            return next;
+          });
+        }
+      });
+  }, []);
 
   const selected = METHODS.find((m) => m.id === method)!;
 
@@ -40,6 +77,10 @@ export default function DepositPage() {
     const amt = Number(amount);
     if (!amt || amt <= 0) {
       toast.error("Enter a valid amount");
+      return;
+    }
+    if (!enabled[selected.setting]) {
+      toast.error(`${selected.label} is not available right now`);
       return;
     }
     if (selected.needsPhone && !phone) {
@@ -95,20 +136,22 @@ export default function DepositPage() {
         <div>
           <Label className="mb-2 block text-sm font-semibold">Select Payment Method</Label>
           <Card className="gap-0 overflow-hidden border-border/60 bg-card p-0">
-            {METHODS.map((m) => (
+            {METHODS.map((m) => {
+              const disabled = !enabled[m.setting];
+              return (
               <button
                 key={m.id}
-                disabled={m.disabled}
+                disabled={disabled}
                 onClick={() => setMethod(m.id)}
                 className={cn(
                   "flex w-full items-center gap-3 border-b border-border/60 px-4 py-3.5 last:border-0 hover:bg-accent",
-                  m.disabled && "cursor-not-allowed opacity-50 hover:bg-transparent"
+                  disabled && "cursor-not-allowed opacity-50 hover:bg-transparent"
                 )}
               >
                 <m.icon className="size-4.5 text-muted-foreground" />
                 <span className="flex-1 text-left text-sm font-medium">
                   {m.label}
-                  {m.disabled && <span className="ml-2 text-xs font-normal text-muted-foreground">(Temporarily unavailable)</span>}
+                  {disabled && <span className="ml-2 text-xs font-normal text-muted-foreground">(Temporarily unavailable)</span>}
                 </span>
                 <span
                   className={cn(
@@ -117,7 +160,8 @@ export default function DepositPage() {
                   )}
                 />
               </button>
-            ))}
+              );
+            })}
           </Card>
         </div>
 

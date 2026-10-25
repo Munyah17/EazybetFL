@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ecocashCharge, normalizeMsisdn, isSuccessStatusMessage } from "@/lib/ecocash/client";
+import { ecocashCharge, normalizeMsisdn, isChargeSuccess, chargeOutcomeText } from "@/lib/ecocash/client";
 import { sendEmail } from "@/lib/email/send";
 import { depositCompletedEmail } from "@/lib/email/templates";
 import { formatMoney } from "@/lib/format";
@@ -16,12 +16,22 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 // EcoCash Instant Payment (EIP) -- the direct EcoCash<->merchant rail,
-// entirely separate from EcoCash-via-Paynow. It is disabled in the UI
-// until live EIP credentials are provisioned; this server-side gate makes
-// the route itself refuse until then, so a hand-crafted POST against
-// sandbox credentials (which return "success" for anything) cannot mint
-// wallet balance. Flip ECOCASH_EIP_LIVE=true once real EIP keys are set.
-const EIP_LIVE = process.env.ECOCASH_EIP_LIVE === "true";
+// entirely separate from EcoCash-via-Paynow. Disabled by default; the
+// super-admin Payment Methods toggle switches it on once live EIP
+// credentials are provisioned. Until then this server-side gate refuses,
+// so a hand-crafted POST against sandbox credentials (which return
+// "success" for anything) cannot mint wallet balance.
+/** The rail is controlled by the super-admin Payment Methods toggle
+ * (payment_method_settings.ecocash_instant) AND requires the EIP
+ * credentials to exist server-side. Env presence alone is not enough --
+ * the toggle decides; the env just makes it physically possible. */
+function eipConfigured() {
+  return !!(
+    process.env.ECOCASH_EIP_BASE_URL &&
+    process.env.ECOCASH_EIP_BASIC_AUTH_USERNAME &&
+    process.env.ECOCASH_EIP_BASIC_AUTH_PASSWORD
+  );
+}
 
 const STATUS_MESSAGE_HINTS: Record<string, string> = {
   "Insufficient Balance": "Insufficient EcoCash balance. Top up your wallet and try again.",
@@ -30,7 +40,13 @@ const STATUS_MESSAGE_HINTS: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
-  if (!EIP_LIVE) {
+  const precheck = createAdminClient();
+  const { data: methodSetting } = await precheck
+    .from("payment_method_settings")
+    .select("enabled")
+    .eq("method", "ecocash_instant")
+    .maybeSingle();
+  if (!methodSetting?.enabled || !eipConfigured()) {
     return NextResponse.json({ error: "EcoCash Instant Payment is not available yet." }, { status: 404 });
   }
 
@@ -103,12 +119,12 @@ export async function POST(req: NextRequest) {
     await admin
       .from("deposits")
       .update({
-        provider_transaction_id: charge.transactionId ?? null,
+        provider_transaction_id: charge.transactionId ?? charge.ecocashReference ?? null,
         provider_payload: charge as unknown as Json,
       })
       .eq("id", deposit.id);
 
-    if (isSuccessStatusMessage(charge.statusMessage)) {
+    if (isChargeSuccess(charge)) {
       await admin.rpc("fn_complete_deposit", { p_deposit_id: deposit.id });
       // Isolated from the outer catch: a failed confirmation email must
       // never cause an already-completed deposit to be reported back to
@@ -125,13 +141,14 @@ export async function POST(req: NextRequest) {
 
     await admin.rpc("fn_fail_deposit", { p_deposit_id: deposit.id });
     await admin.from("deposits").update({ status: "failed" }).eq("id", deposit.id);
-    console.error("[deposits/ecocash] EcoCash returned:", charge.statusMessage);
+    const outcome = chargeOutcomeText(charge);
+    console.error("[deposits/ecocash] EcoCash returned:", outcome);
 
     return NextResponse.json(
       {
         status: "failed",
         depositId: deposit.id,
-        message: STATUS_MESSAGE_HINTS[charge.statusMessage] ?? "The payment could not be completed. Please try again.",
+        message: STATUS_MESSAGE_HINTS[outcome] ?? "The payment could not be completed. Please try again.",
       },
       { status: 402 }
     );

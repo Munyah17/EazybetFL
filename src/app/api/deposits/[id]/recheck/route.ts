@@ -6,7 +6,7 @@ import { logError } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
 
-// Super-admin "re-check Paynow now" for a stuck deposit, from the
+// Admin "re-check Paynow now" for a stuck deposit, from the
 // verification review queue. Re-polls the gateway and completes through
 // the shared idempotent path if -- and only if -- Paynow reports it paid.
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -18,7 +18,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "super_admin") {
+  if (profile?.role !== "super_admin" && profile?.role !== "admin") {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 

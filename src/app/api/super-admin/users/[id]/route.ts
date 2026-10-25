@@ -6,7 +6,11 @@ import type { Json } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 
-type WalletBucket = "balance" | "principal";
+// 'voucher' credits physically land in principal_balance (cash-bought,
+// bet-only) but stay distinguishable in the ledger; 'bonus' lands in
+// bonus_balance (house money). Mapping happens inside fn_wallet_credit/
+// fn_wallet_debit.
+type WalletBucket = "balance" | "principal" | "bonus" | "voucher";
 
 type ActionBody =
   | { action: "wallet_adjust"; direction: "credit" | "debit"; bucket: WalletBucket; amount: number; description: string }
@@ -18,6 +22,7 @@ type ActionBody =
 async function audit(
   admin: ReturnType<typeof createAdminClient>,
   actorId: string,
+  actorRole: "admin" | "super_admin",
   action: string,
   entityId: string,
   newValues?: Record<string, unknown>
@@ -26,7 +31,7 @@ async function audit(
   // under the service role -- write the row directly so the actor is right.
   await admin.from("audit_logs").insert({
     actor_id: actorId,
-    actor_role: "super_admin",
+    actor_role: actorRole,
     action,
     entity_type: "profile",
     entity_id: entityId,
@@ -50,15 +55,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     .select("role")
     .eq("id", user.id)
     .single();
-  if (profile?.role !== "super_admin") {
+  if (profile?.role !== "admin" && profile?.role !== "super_admin") {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
+  const isSuperAdmin = profile.role === "super_admin";
 
   let body: ActionBody;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
+
+  // Plain admins may manage wallet balances (and send notifications) but
+  // the account-level powers -- passwords, session revocation, deletion --
+  // stay super-admin-only.
+  if (!isSuperAdmin && body.action !== "wallet_adjust" && body.action !== "send_notification") {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
   const admin = createAdminClient();
@@ -77,21 +90,61 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000) {
           return NextResponse.json({ error: "Enter a valid amount" }, { status: 400 });
         }
-        const bucket: WalletBucket = body.bucket === "principal" ? "principal" : "balance";
+        const bucket: WalletBucket = ["balance", "principal", "bonus", "voucher"].includes(
+          body.bucket
+        )
+          ? body.bucket
+          : "balance";
         const description =
           typeof body.description === "string" && body.description.trim()
             ? body.description.trim().slice(0, 200)
-            : `Manual ${body.direction} by super admin`;
+            : `Manual ${body.direction} (${bucket}) by ${profile.role}`;
+
+        // Ledger type per bucket so the money's origin stays legible:
+        // bonus -> bonus_credit/bonus_debit, voucher -> voucher_redemption
+        // (credit) / adjustment (debit), principal/balance -> adjustment.
+        const txType =
+          bucket === "bonus"
+            ? body.direction === "credit"
+              ? "bonus_credit"
+              : "bonus_debit"
+            : bucket === "voucher" && body.direction === "credit"
+              ? "voucher_redemption"
+              : "adjustment";
+
+        // A manual voucher credit still gets a vouchers row so the credit
+        // trails back to a real, auditable voucher record.
+        let referenceId = "00000000-0000-0000-0000-000000000000";
+        let referenceType = "manual_adjustment";
+        if (bucket === "voucher" && body.direction === "credit") {
+          const code = `ADM-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+          const { data: voucher, error: vErr } = await admin
+            .from("vouchers")
+            .insert({
+              code,
+              amount,
+              created_by: user.id,
+              status: "redeemed",
+              redeemed_by: id,
+              redeemed_at: new Date().toISOString(),
+            })
+            .select("id")
+            .single();
+          if (vErr) {
+            await logError("api:super-admin/users voucher_insert", vErr.message, { id });
+            return NextResponse.json({ error: "Could not record voucher credit" }, { status: 400 });
+          }
+          referenceId = voucher.id;
+          referenceType = "voucher";
+        }
 
         const fn = body.direction === "credit" ? "fn_wallet_credit" : "fn_wallet_debit";
         const { error } = await admin.rpc(fn, {
           p_user_id: id,
           p_amount: amount,
-          p_type: "adjustment",
-          p_reference_type: "manual_adjustment",
-          // No linked entity for a manual adjustment; the column is a
-          // required uuid, so use the nil uuid as a neutral marker.
-          p_reference_id: "00000000-0000-0000-0000-000000000000",
+          p_type: txType,
+          p_reference_type: referenceType,
+          p_reference_id: referenceId,
           p_description: description,
           p_created_by: user.id,
           p_bucket: bucket,
@@ -100,7 +153,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           await logError("api:super-admin/users wallet_adjust", error.message, { id });
           return NextResponse.json({ error: error.message }, { status: 400 });
         }
-        await audit(admin, user.id, "wallet_adjust", id, {
+        await audit(admin, user.id, profile.role as "admin" | "super_admin", "wallet_adjust", id, {
           direction: body.direction,
           bucket,
           amount,
@@ -127,7 +180,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           await logError("api:super-admin/users set_password", error.message, { id });
           return NextResponse.json({ error: "Could not set password" }, { status: 400 });
         }
-        await audit(admin, user.id, "password_reset_by_admin", id);
+        await audit(admin, user.id, "super_admin", "password_reset_by_admin", id);
         return NextResponse.json({ ok: true });
       }
 
@@ -152,7 +205,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           await logError("api:super-admin/users revoke_sessions", await res.text(), { id });
           return NextResponse.json({ error: "Could not revoke sessions" }, { status: 400 });
         }
-        await audit(admin, user.id, "sessions_revoked", id);
+        await audit(admin, user.id, "super_admin", "sessions_revoked", id);
         return NextResponse.json({ ok: true });
       }
 
@@ -172,7 +225,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           await logError("api:super-admin/users send_notification", error.message, { id });
           return NextResponse.json({ error: "Could not send notification" }, { status: 400 });
         }
-        await audit(admin, user.id, "notification_sent", id, { title });
+        await audit(admin, user.id, profile.role as "admin" | "super_admin", "notification_sent", id, { title });
         return NextResponse.json({ ok: true });
       }
 
@@ -191,7 +244,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           await logError("api:super-admin/users delete_account", error.message, { id });
           return NextResponse.json({ error: "Could not delete account" }, { status: 400 });
         }
-        await audit(admin, user.id, "account_deleted", id, { email: target.email });
+        await audit(admin, user.id, "super_admin", "account_deleted", id, { email: target.email });
         return NextResponse.json({ ok: true });
       }
 

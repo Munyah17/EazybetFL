@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   ecocashLookup,
   normalizeMsisdn,
-  isSuccessStatusMessage,
+  isChargeSuccess,
   type EcoCashChargeResponse,
 } from "@/lib/ecocash/client";
 import { sendEmail } from "@/lib/email/send";
@@ -29,10 +29,16 @@ export const dynamic = "force-dynamic";
  * than trusting a caller-supplied status.
  */
 export async function POST(req: NextRequest) {
-  // EIP rail is gated off until live credentials exist -- see
-  // /api/deposits/ecocash. No EIP deposits are created meanwhile, so this
-  // callback has nothing legitimate to act on.
-  if (process.env.ECOCASH_EIP_LIVE !== "true") {
+  // Same gate as /api/deposits/ecocash: while the rail is off, no EIP
+  // deposits are created, so this callback has nothing legitimate to act
+  // on.
+  const gate = createAdminClient();
+  const { data: methodSetting } = await gate
+    .from("payment_method_settings")
+    .select("enabled")
+    .eq("method", "ecocash_instant")
+    .maybeSingle();
+  if (!methodSetting?.enabled) {
     return NextResponse.json({ ok: true });
   }
 
@@ -68,7 +74,7 @@ export async function POST(req: NextRequest) {
     .update({ provider_payload: verified as unknown as Json })
     .eq("id", deposit.id);
 
-  if (isSuccessStatusMessage(verified.statusMessage ?? "")) {
+  if (isChargeSuccess(verified)) {
     const { error: completeErr } = await admin.rpc("fn_complete_deposit", { p_deposit_id: deposit.id });
     if (completeErr) await logError("webhook:ecocash", completeErr.message, { depositId: deposit.id, step: "fn_complete_deposit" });
     try {

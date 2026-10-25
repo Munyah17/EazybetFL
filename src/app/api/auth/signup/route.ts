@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimited, clientIp } from "@/lib/rate-limit";
-import { normalizeZwPhone } from "@/lib/phone";
+import { normalizePhone } from "@/lib/phone";
 import { getAppBaseUrl } from "@/lib/app-url";
 import { logError } from "@/lib/log";
 
@@ -26,9 +26,12 @@ export async function POST(req: NextRequest) {
   // stored malformed (which is what broke phone login before).
   let phone: string | null = null;
   if (rawPhone && rawPhone.trim()) {
-    phone = normalizeZwPhone(rawPhone);
+    phone = normalizePhone(rawPhone);
     if (!phone) {
-      return NextResponse.json({ error: "Enter a valid Zimbabwe mobile number, e.g. 0771234567" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Enter a valid mobile number with country code, e.g. +263771234567" },
+        { status: 400 }
+      );
     }
   }
   if (password.length < 8) {

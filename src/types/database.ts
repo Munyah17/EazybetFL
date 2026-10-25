@@ -767,6 +767,41 @@ export type Database = {
           },
         ]
       }
+      payment_method_settings: {
+        Row: {
+          enabled: boolean
+          label: string
+          method: string
+          note: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          label: string
+          method: string
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          label?: string
+          method?: string
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_method_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           account_number: string
@@ -1385,6 +1420,15 @@ export type Database = {
         Returns: string
       }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      fn_admin_manage_deposit: {
+        Args: {
+          p_deposit_id: string
+          p_action: string
+          p_amount?: number
+          p_note?: string
+        }
+        Returns: Json
+      }
       fn_agent_deposit_customer: {
         Args: { p_amount: number; p_customer_id: string }
         Returns: undefined
@@ -1473,6 +1517,7 @@ export type Database = {
       fn_link_agent: { Args: { p_agent_code: string }; Returns: undefined }
       fn_load_booked_bet: { Args: { p_bet_code: string }; Returns: Json }
       fn_lookup_email_by_phone: { Args: { p_phone: string }; Returns: string }
+      fn_normalize_phone: { Args: { p_phone: string }; Returns: string }
       fn_lookup_user_by_account_number: {
         Args: { p_account_number: string }
         Returns: Json
@@ -1632,6 +1677,7 @@ export type Database = {
         | "completed"
         | "failed"
         | "cancelled"
+        | "reversed"
       fixture_status:
         | "upcoming"
         | "live"
@@ -1673,7 +1719,7 @@ export type Database = {
       support_ticket_status: "open" | "resolved"
       user_role: "user" | "admin" | "super_admin" | "agent"
       voucher_status: "active" | "redeemed" | "void"
-      wallet_bucket: "principal" | "balance"
+      wallet_bucket: "principal" | "balance" | "bonus" | "voucher"
       wallet_tx_status: "pending" | "completed" | "failed" | "reversed"
       wallet_tx_type:
         | "deposit"

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
-import { normalizeZwPhone } from "@/lib/phone";
+import { normalizePhone } from "@/lib/phone";
 
 export function LoginForm({
   redirectTo = "/",
@@ -53,7 +53,7 @@ export function LoginForm({
 
     let email = identifier.trim();
     if (!email.includes("@")) {
-      const normalizedPhone = normalizeZwPhone(email);
+      const normalizedPhone = normalizePhone(email);
       if (!normalizedPhone) {
         setLoading(false);
         toast.error("Invalid credentials", { description: "Check your email/phone and password." });

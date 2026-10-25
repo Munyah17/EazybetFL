@@ -240,13 +240,24 @@ export function UserManager({ initialUsers }: { initialUsers: ManagedUser[] }) {
                   )}
                 </p>
               </div>
-              <div className="w-20 text-right sm:w-24">
-                <p className="text-sm font-medium tabular-nums">{money(u.currency, u.balance)}</p>
-                {u.bonus_balance !== null && u.bonus_balance > 0 && (
-                  <p className="text-xs text-muted-foreground tabular-nums">
-                    +{money(u.currency, u.bonus_balance)} bonus
-                  </p>
-                )}
+              <div className="w-28 text-right sm:w-32">
+                {/* Total = deposits/vouchers (principal) + winnings (balance)
+                    + bonus. Only showing `balance` here is what made real
+                    money invisible -- deposits land in principal. */}
+                <p className="text-sm font-medium tabular-nums">
+                  {money(
+                    u.currency,
+                    u.balance === null && u.principal_balance === null && u.bonus_balance === null
+                      ? null
+                      : (u.principal_balance ?? 0) + (u.balance ?? 0) + (u.bonus_balance ?? 0)
+                  )}
+                </p>
+                <p className="text-[10px] leading-tight text-muted-foreground tabular-nums">
+                  {money(u.currency, u.principal_balance)} cash
+                  {u.bonus_balance !== null && u.bonus_balance > 0
+                    ? ` + ${money(u.currency, u.bonus_balance)} bonus`
+                    : ""}
+                </p>
               </div>
               <Badge className={cn("border-0 text-[10px] capitalize", ROLE_STYLE[u.role])}>
                 {u.role.replace("_", " ")}
@@ -643,7 +654,7 @@ function WalletTab({
   onPatch: (id: string, patch: Partial<ManagedUser>) => void;
 }) {
   const [direction, setDirection] = useState<"credit" | "debit">("credit");
-  const [bucket, setBucket] = useState<"balance" | "principal">("balance");
+  const [bucket, setBucket] = useState<"balance" | "principal" | "bonus" | "voucher">("balance");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -718,13 +729,18 @@ function WalletTab({
               <SelectItem value="debit">Debit</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={bucket} onValueChange={(v) => setBucket(v as "balance" | "principal")}>
-            <SelectTrigger size="sm" className="w-32">
+          <Select
+            value={bucket}
+            onValueChange={(v) => setBucket(v as "balance" | "principal" | "bonus" | "voucher")}
+          >
+            <SelectTrigger size="sm" className="w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="balance">Winnings</SelectItem>
               <SelectItem value="principal">Principal</SelectItem>
+              <SelectItem value="voucher">Voucher</SelectItem>
+              <SelectItem value="bonus">Bonus</SelectItem>
             </SelectContent>
           </Select>
           <Input
@@ -747,8 +763,9 @@ function WalletTab({
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Adjustments are written to the wallet ledger as &quot;adjustment&quot; transactions and
-          audited.
+          Winnings are withdrawable. Principal &amp; Voucher are cash-backed and bet-only. Bonus
+          is house-funded promo money (bet-only). Voucher credits create a redeemed voucher
+          record. Everything lands in the wallet ledger and audit log.
         </p>
       </div>
     </div>

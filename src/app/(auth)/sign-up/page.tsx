@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { friendlyError } from "@/lib/friendly-error";
-import { normalizeZwPhone } from "@/lib/phone";
+import { normalizePhone } from "@/lib/phone";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -41,13 +41,13 @@ export default function SignUpPage() {
       return;
     }
 
-    if (phone.trim() && !normalizeZwPhone(phone)) {
-      toast.error("Enter a valid Zimbabwe mobile number, e.g. 0771234567");
+    if (phone.trim() && !normalizePhone(phone)) {
+      toast.error("Enter a valid mobile number with country code, e.g. +263771234567");
       return;
     }
 
     setLoading(true);
-    const fullPhone = phone.trim() ? normalizeZwPhone(phone) : null;
+    const fullPhone = phone.trim() ? normalizePhone(phone) : null;
 
     // Routed through our own server so signup attempts can be rate
     // limited -- same reason as login.
@@ -117,20 +117,18 @@ export default function SignUpPage() {
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="phone">Phone Number</Label>
-          <div className="flex gap-2">
-            <span className="flex items-center rounded-md border border-input bg-secondary px-3 text-sm font-medium text-muted-foreground">
-              +263
-            </span>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="712 345 678"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="flex-1"
-              required
-            />
-          </div>
+          <Input
+            id="phone"
+            type="tel"
+            placeholder="e.g. +263771234567 or +27821234567"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            Include your country code (e.g. +263 for Zimbabwe). Local 07… numbers are assumed
+            Zimbabwean.
+          </p>
         </div>
 
         <div className="flex flex-col gap-1.5">

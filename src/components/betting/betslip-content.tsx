@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { X, Info, Minus, Plus, Trash2, Receipt } from "lucide-react";
+import { X, Info, Minus, Plus, Trash2, Receipt, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { formatMoney, formatOdds, formatKickoff } from "@/lib/format";
 import { betslipCode } from "@/lib/bet-code";
 import { useLoadBookedBet } from "@/lib/use-load-booked-bet";
 import { BookBetDialog } from "@/components/betting/book-bet-dialog";
+import { ShareBetDialog, type SharedSlip } from "@/components/betting/share-bet-dialog";
 import { friendlyError } from "@/lib/friendly-error";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +49,9 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
 
   const [placing, setPlacing] = useState(false);
   const [booking, setBooking] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [bookedCode, setBookedCode] = useState<string | null>(null);
+  const [sharedSlip, setSharedSlip] = useState<SharedSlip | null>(null);
   const [code, setCode] = useState("");
   const [boostBannerDismissed, setBoostBannerDismissed] = useState(false);
 
@@ -154,21 +157,54 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
     router.push("/bets");
   }
 
-  async function handleBookBet() {
-    if (selections.length === 0) return;
-    setBooking(true);
+  // One code per slip contents -- Booking, then Share on the same picks
+  // must show the SAME code (it's the same artifact), and repeat clicks
+  // shouldn't spam booked_bets rows. Signature covers bet type + picks;
+  // any change rebooks on next use.
+  const slipCodeRef = useRef<{ sig: string; code: string } | null>(null);
+
+  async function ensureSlipCode(): Promise<string | null> {
+    const sig = JSON.stringify([effectiveBetType, selections.map((s) => s.outcomeId)]);
+    if (slipCodeRef.current?.sig === sig) return slipCodeRef.current.code;
+
     const { data, error } = await supabase.rpc("fn_book_bet", {
       p_bet_type: effectiveBetType,
       p_selections: selections.map((s) => ({ outcome_id: s.outcomeId })),
     });
-    setBooking(false);
-
     if (error) {
       toast.error("Could not book bet", { description: friendlyError(error) });
-      return;
+      return null;
     }
-    const result = data as { bet_code: string };
-    setBookedCode(result.bet_code);
+    const code = (data as { bet_code: string }).bet_code;
+    slipCodeRef.current = { sig, code };
+    return code;
+  }
+
+  async function handleBookBet() {
+    if (selections.length === 0) return;
+    setBooking(true);
+    const code = await ensureSlipCode();
+    setBooking(false);
+    if (code) setBookedCode(code);
+  }
+
+  async function handleShare() {
+    if (selections.length === 0) return;
+    setSharing(true);
+    const code = await ensureSlipCode();
+    setSharing(false);
+    if (!code) return;
+    setSharedSlip({
+      code,
+      betType: effectiveBetType,
+      totalOdds,
+      selections: selections.map((s) => ({
+        fixtureLabel: s.fixtureLabel,
+        marketName: s.marketName,
+        selectionName: s.selectionName,
+        oddsPrice: s.oddsPrice,
+      })),
+    });
   }
 
   return (
@@ -414,9 +450,14 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
                 ? "Login to Bet"
                 : `Place Bet · ${formatMoney(totalStakeRequired)}`}
           </Button>
-          <Button variant="outline" disabled={booking} onClick={handleBookBet}>
-            {booking ? "Booking…" : "Book Bet"}
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" disabled={booking} onClick={handleBookBet}>
+              {booking ? "Booking…" : "Book Bet"}
+            </Button>
+            <Button variant="outline" disabled={sharing} onClick={handleShare}>
+              <Share2 className="size-4" /> {sharing ? "Sharing…" : "Share"}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -428,6 +469,7 @@ export function BetslipContent({ onPlaced }: { onPlaced?: () => void }) {
           onPlaced?.();
         }}
       />
+      <ShareBetDialog slip={sharedSlip} onClose={() => setSharedSlip(null)} />
     </>
   );
 }

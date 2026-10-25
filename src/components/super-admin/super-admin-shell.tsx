@@ -17,6 +17,8 @@ import {
   FileWarning,
   BadgeCheck,
   BarChart3,
+  CircleDollarSign,
+  CreditCard,
 } from "lucide-react";
 import { PortalShell, type PortalNavSection } from "@/components/portal/portal-shell";
 
@@ -34,6 +36,7 @@ const sections: PortalNavSection[] = [
       { href: "/super-admin/users", label: "User Management", icon: UserCog },
       { href: "/super-admin/agents", label: "Agents", icon: Handshake },
       { href: "/super-admin/bets", label: "Bets", icon: Ticket },
+      { href: "/super-admin/deposits", label: "Deposits", icon: CircleDollarSign },
       { href: "/super-admin/withdrawals", label: "Withdrawals", icon: Banknote },
       { href: "/super-admin/deposit-verifications", label: "Deposit Checks", icon: BadgeCheck },
       { href: "/super-admin/vouchers", label: "Vouchers", icon: TicketPercent },
@@ -47,6 +50,7 @@ const sections: PortalNavSection[] = [
     items: [
       { href: "/super-admin/staff", label: "Staff Management", icon: Users },
       { href: "/super-admin/escrow", label: "Escrow", icon: Vault },
+      { href: "/super-admin/payment-methods", label: "Payment Methods", icon: CreditCard },
       { href: "/super-admin/system", label: "System Status", icon: Activity },
       { href: "/super-admin/logs", label: "Logs", icon: FileWarning },
       { href: "/super-admin/audit-log", label: "Audit Log", icon: ScrollText },

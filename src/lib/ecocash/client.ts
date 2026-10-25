@@ -16,10 +16,15 @@ export function normalizeMsisdn(input: string) {
 
 export type EcoCashChargeResponse = {
   transactionId?: string;
+  ecocashReference?: string;
   clientCorrelator: string;
   status?: string;
   statusCode?: string;
-  statusMessage: string;
+  statusMessage?: string;
+  // Documented Online Payments shape: responseCode "00" + a terminal
+  // transactionOperationStatus ("Charged" / "Cancelled" / ...).
+  responseCode?: string;
+  transactionOperationStatus?: string;
   amount?: number;
   currency?: string;
   endUserId?: string;
@@ -90,4 +95,21 @@ export async function ecocashLookup(endUserId: string, clientCorrelator: string)
 
 export function isSuccessStatusMessage(message: string) {
   return /successful/i.test(message);
+}
+
+/** Authoritative success check for a charge/lookup response. Accepts the
+ * documented Online Payments shape (responseCode "00" or
+ * transactionOperationStatus "Charged") and the older statusMessage form
+ * for backwards compatibility with existing provider_payload rows. */
+export function isChargeSuccess(res: EcoCashChargeResponse) {
+  return (
+    res.responseCode === "00" ||
+    res.transactionOperationStatus === "Charged" ||
+    isSuccessStatusMessage(res.statusMessage ?? "")
+  );
+}
+
+/** Human-readable outcome for logs/toasts regardless of response shape. */
+export function chargeOutcomeText(res: EcoCashChargeResponse) {
+  return res.statusMessage ?? res.transactionOperationStatus ?? res.responseCode ?? "unknown";
 }
