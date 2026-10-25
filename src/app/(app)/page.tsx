@@ -11,7 +11,9 @@ export default async function HomePage() {
     getActiveSportGroups(),
     getActiveHeroSlides(),
     getFixtures({ status: ["live"], limit: 40 }),
-    getFixtures({ status: ["upcoming"], limit: 60 }),
+    // Wider pool than the Upcoming tab needs so Top Events is a real
+    // popularity ranking, not just the chronological head of the list.
+    getFixtures({ status: ["upcoming"], limit: 150 }),
   ]);
 
   return (

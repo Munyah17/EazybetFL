@@ -23,9 +23,20 @@ export async function getActiveSportGroups(): Promise<SportGroup[]> {
 
 export async function getActiveSportGroupsWithCounts(): Promise<SportGroupWithCount[]> {
   const supabase = await createClient();
+  // Same window as getFixtures -- count only fixtures the pages actually
+  // serve, so group badge numbers and the sports bar don't point at
+  // empty/dead pages (e.g. leagues between rounds, or far-future rows).
+  const now = new Date().toISOString();
+  const horizon = new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString();
+  const liveCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("sport_groups")
-    .select("id, key, name, icon, display_order, competitions!inner( fixtures!inner( id ) )");
+    .select("id, key, name, icon, display_order, competitions!inner( fixtures!inner( id ) )")
+    .or(
+      `and(status.eq.upcoming,commence_time.gte.${now},commence_time.lte.${horizon}),` +
+        `and(status.eq.live,commence_time.gte.${liveCutoff})`,
+      { referencedTable: "competitions.fixtures" }
+    );
 
   if (error) throw new Error(error.message);
 

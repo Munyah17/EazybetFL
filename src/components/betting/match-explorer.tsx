@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Zap } from "lucide-react";
+import { Zap, Sparkles } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SportIcon } from "@/components/betting/sport-icon";
 import { PaginatedLeagueSections } from "@/components/betting/paginated-league-sections";
+import { sortFixturesByPopularity } from "@/lib/data/sort-fixtures";
 import { displayGroupName } from "@/lib/sport-display";
 import { cn } from "@/lib/utils";
 import type { FixtureWithOdds, QuickMarketKey } from "@/lib/data/fixture-types";
@@ -34,7 +35,9 @@ export function MatchExplorer({
   liveFixtures: FixtureWithOdds[];
   upcomingFixtures: FixtureWithOdds[];
 }) {
-  const [tab, setTab] = useState<MatchTab>("upcoming");
+  // Top Events is the landing view -- the biggest live + upcoming games
+  // first, which is what a bettor opening the app actually wants to see.
+  const [tab, setTab] = useState<MatchTab>("top");
   // Football/soccer is the dominant sport for our audience -- default the
   // filter to it (when we actually carry it) instead of "All Sports".
   const [sport, setSport] = useState<string>(() => (groups.some((g) => g.key === "soccer") ? "soccer" : "all"));
@@ -42,8 +45,11 @@ export function MatchExplorer({
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [market, setMarket] = useState<QuickMarketKey>("h2h");
 
+  // "Top" = popularity-ranked across the whole fetched pool (live first,
+  // then big leagues, then kickoff) -- not just the first 15 rows
+  // chronologically, which is what made it identical to the Upcoming tab.
   const topFixtures = useMemo(
-    () => [...liveFixtures, ...upcomingFixtures].slice(0, 15),
+    () => sortFixturesByPopularity([...liveFixtures, ...upcomingFixtures]).slice(0, 15),
     [liveFixtures, upcomingFixtures]
   );
 
@@ -88,9 +94,10 @@ export function MatchExplorer({
         </TabsList>
       </div>
 
-      <div className="no-scrollbar flex items-center gap-5 overflow-x-auto border-b border-border px-3 py-3 lg:justify-evenly lg:gap-2 lg:px-5">
+      <div className="no-scrollbar flex items-center gap-7 overflow-x-auto border-b border-border px-4 py-3.5 lg:justify-evenly lg:gap-4 lg:px-5">
         <SportChip
           label="All Sports"
+          icon={Sparkles}
           active={sport === "all"}
           onClick={() => setSport("all")}
         />
@@ -98,7 +105,7 @@ export function MatchExplorer({
           <SportChip
             key={g.id}
             label={displayGroupName(g.name)}
-            icon={g.icon}
+            groupKey={g.key}
             active={sport === g.key}
             onClick={() => setSport(g.key)}
           />
@@ -153,26 +160,29 @@ export function MatchExplorer({
 function SportChip({
   label,
   icon,
+  groupKey,
   active,
   onClick,
 }: {
   label: string;
-  icon?: string | null;
+  icon?: React.ComponentType<{ className?: string }>;
+  groupKey?: string;
   active: boolean;
   onClick: () => void;
 }) {
+  const Icon = icon;
   return (
     <button
       onClick={onClick}
       className={cn(
-        "flex shrink-0 flex-col items-center gap-1 text-[11px] font-medium",
+        "flex shrink-0 flex-col items-center gap-1.5 text-[11px] font-medium",
         active ? "text-primary" : "text-muted-foreground hover:text-foreground"
       )}
     >
-      {icon !== undefined ? (
-        <SportIcon name={icon} className="size-5" />
+      {Icon ? (
+        <Icon className="size-5" />
       ) : (
-        <span className="flex size-5 items-center justify-center text-sm">&#9733;</span>
+        <SportIcon name={null} groupKey={groupKey} className="size-5" />
       )}
       <span className={cn("whitespace-nowrap", active && "font-bold")}>{label}</span>
     </button>

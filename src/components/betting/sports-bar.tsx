@@ -15,7 +15,7 @@ export function SportsBar({
           href={`/sports/${g.key}`}
           className="flex shrink-0 flex-col items-center gap-1.5 rounded-xl bg-card px-4 py-2.5 hover:bg-accent"
         >
-          <SportIcon name={g.icon} className="size-5 text-primary" />
+          <SportIcon name={g.icon} groupKey={g.key} className="size-5 text-primary" />
           <span className="text-[11px] font-medium text-muted-foreground">{displayGroupName(g.name)}</span>
         </Link>
       ))}

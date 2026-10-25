@@ -104,7 +104,7 @@ export function DesktopSidebar({ groups }: { groups: SportGroupNode[] }) {
                 ) : (
                   <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
                 )}
-                <SportIcon name={g.icon} className="size-4 shrink-0 text-primary" />
+                <SportIcon name={g.icon} groupKey={g.key} className="size-4 shrink-0 text-primary" />
                 <span className="flex-1 truncate">{displayGroupName(g.name)}</span>
                 <span className="text-xs text-muted-foreground">{g.fixtureCount}</span>
               </button>

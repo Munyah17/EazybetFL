@@ -44,13 +44,27 @@ function sortCountries(a: string, b: string) {
 export const getSidebarTree = unstable_cache(
   async (): Promise<SportGroupNode[]> => {
     const supabase = createPublicClient();
-    const { data, error } = await supabase.from("sport_groups").select(
-      `id, key, name, icon, display_order,
-       competitions!inner (
-         id, odds_api_key, title,
-         fixtures!inner ( id )
-       )`
-    );
+    // Only count fixtures a competition page can actually serve --
+    // upcoming/live within the same windows getFixtures uses. Counting
+    // finished or far-future rows here made the sidebar advertise
+    // competitions that rendered an empty page.
+    const now = new Date().toISOString();
+    const horizon = new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString();
+    const liveCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from("sport_groups")
+      .select(
+        `id, key, name, icon, display_order,
+         competitions!inner (
+           id, odds_api_key, title,
+           fixtures!inner ( id, status, commence_time )
+         )`
+      )
+      .or(
+        `and(status.eq.upcoming,commence_time.gte.${now},commence_time.lte.${horizon}),` +
+          `and(status.eq.live,commence_time.gte.${liveCutoff})`,
+        { referencedTable: "competitions.fixtures" }
+      );
 
     if (error) throw new Error(error.message);
 
